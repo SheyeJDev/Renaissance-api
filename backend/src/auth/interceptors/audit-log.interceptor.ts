@@ -44,7 +44,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         next: async (response) => {
           try {
             const executionTime = Date.now() - startTime;
-            
+
             await this.auditService.logAction({
               userId: user.id,
               action: auditAction,

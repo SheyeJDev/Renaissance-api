@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Leaderboard } from '../leaderboard/entities/leaderboard.entity';
 import { User } from '../users/entities/user.entity';
-import { BlockchainService } from '../blockchain/blockchain.service';
+// import { BlockchainService } from '../blockchain/blockchain.service';
 import { BetsService } from '../bets/bets.service';
 
 /**
@@ -13,7 +13,7 @@ export interface UserLeaderboardStats {
   userId: string;
   username: string;
   email: string;
-  
+
   // Basic Stats
   totalBets: number;
   betsWon: number;
@@ -22,7 +22,7 @@ export interface UserLeaderboardStats {
   totalStaked: number;
   totalStakingRewards: number;
   activeStakes: number;
-  
+
   // Derived Metrics
   bettingAccuracy: number;
   winningStreak: number;
@@ -30,7 +30,7 @@ export interface UserLeaderboardStats {
   netEarnings: number;
   bestPredictor: number;
   roi: number;
-  
+
   // Activity Tracking
   lastBetAt: Date;
   lastStakeAt: Date;
@@ -66,15 +66,15 @@ export interface OffChainBetSettlement {
  */
 export interface LeaderboardMetrics {
   // Performance Metrics
-  netEarnings: number;        // Total winnings - total losses
-  roi: number;               // Return on investment percentage
-  bestPredictor: number;     // Prediction accuracy score
-  
+  netEarnings: number; // Total winnings - total losses
+  roi: number; // Return on investment percentage
+  bestPredictor: number; // Prediction accuracy score
+
   // Activity Metrics
   totalBets: number;
   winningStreak: number;
   avgBetSize: number;
-  
+
   // Staking Metrics
   totalStaked: number;
   stakingYield: number;
@@ -93,7 +93,7 @@ export class LeaderboardAggregationService {
     @InjectRepository(Leaderboard)
     private readonly leaderboardRepository: Repository<Leaderboard>,
     private readonly dataSource: DataSource,
-    private readonly blockchainService: BlockchainService,
+    // private readonly blockchainService: BlockchainService,
     private readonly betsService: BetsService,
   ) {}
 
@@ -116,7 +116,7 @@ export class LeaderboardAggregationService {
 
     // Get additional off-chain data
     const offChainStats = await this.getOffChainBetStats(userId);
-    
+
     // Get on-chain staking data
     const onChainStakes = await this.getOnChainStakingData(userId);
 
@@ -131,7 +131,7 @@ export class LeaderboardAggregationService {
       userId: leaderboard.userId,
       username: leaderboard.user?.username || 'Unknown',
       email: leaderboard.user?.email || '',
-      
+
       // Basic Stats
       totalBets: leaderboard.totalBets,
       betsWon: leaderboard.betsWon,
@@ -140,7 +140,7 @@ export class LeaderboardAggregationService {
       totalStaked: Number(leaderboard.totalStaked),
       totalStakingRewards: Number(leaderboard.totalStakingRewards),
       activeStakes: Number(leaderboard.activeStakes),
-      
+
       // Derived Metrics
       bettingAccuracy: Number(leaderboard.bettingAccuracy),
       winningStreak: leaderboard.winningStreak,
@@ -148,7 +148,7 @@ export class LeaderboardAggregationService {
       netEarnings: derivedMetrics.netEarnings,
       bestPredictor: derivedMetrics.bestPredictor,
       roi: derivedMetrics.roi,
-      
+
       // Activity Tracking
       lastBetAt: leaderboard.lastBetAt,
       lastStakeAt: leaderboard.lastStakeAt,
@@ -164,7 +164,12 @@ export class LeaderboardAggregationService {
   async getTopLeaderboard(
     limit: number = 100,
     offset: number = 0,
-    orderBy: 'netEarnings' | 'roi' | 'bestPredictor' | 'winningStreak' | 'totalBets' = 'netEarnings',
+    orderBy:
+      | 'netEarnings'
+      | 'roi'
+      | 'bestPredictor'
+      | 'winningStreak'
+      | 'totalBets' = 'netEarnings',
   ): Promise<UserLeaderboardStats[]> {
     this.logger.log(`Fetching top leaderboard: ${orderBy}, limit: ${limit}`);
 
@@ -221,8 +226,12 @@ export class LeaderboardAggregationService {
     // Calculate derived metrics for each result
     return Promise.all(
       results.map(async (leaderboard) => {
-        const offChainStats = await this.getOffChainBetStats(leaderboard.userId);
-        const onChainStakes = await this.getOnChainStakingData(leaderboard.userId);
+        const offChainStats = await this.getOffChainBetStats(
+          leaderboard.userId,
+        );
+        const onChainStakes = await this.getOnChainStakingData(
+          leaderboard.userId,
+        );
         const derivedMetrics = this.calculateDerivedMetrics(
           leaderboard,
           offChainStats,
@@ -233,7 +242,7 @@ export class LeaderboardAggregationService {
           userId: leaderboard.userId,
           username: leaderboard.user?.username || 'Unknown',
           email: leaderboard.user?.email || '',
-          
+
           // Basic Stats
           totalBets: leaderboard.totalBets,
           betsWon: leaderboard.betsWon,
@@ -242,7 +251,7 @@ export class LeaderboardAggregationService {
           totalStaked: Number(leaderboard.totalStaked),
           totalStakingRewards: Number(leaderboard.totalStakingRewards),
           activeStakes: Number(leaderboard.activeStakes),
-          
+
           // Derived Metrics
           bettingAccuracy: Number(leaderboard.bettingAccuracy),
           winningStreak: leaderboard.winningStreak,
@@ -250,7 +259,7 @@ export class LeaderboardAggregationService {
           netEarnings: derivedMetrics.netEarnings,
           bestPredictor: derivedMetrics.bestPredictor,
           roi: derivedMetrics.roi,
-          
+
           // Activity Tracking
           lastBetAt: leaderboard.lastBetAt,
           lastStakeAt: leaderboard.lastStakeAt,
@@ -265,7 +274,9 @@ export class LeaderboardAggregationService {
    * Process on-chain staking events
    * Called by event listeners or cron jobs
    */
-  async processOnChainStakingEvents(events: OnChainStakeEvent[]): Promise<void> {
+  async processOnChainStakingEvents(
+    events: OnChainStakeEvent[],
+  ): Promise<void> {
     this.logger.log(`Processing ${events.length} staking events`);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -313,7 +324,9 @@ export class LeaderboardAggregationService {
    * Process off-chain bet settlements
    * Called by event listeners or cron jobs
    */
-  async processOffChainBetSettlements(settlements: OffChainBetSettlement[]): Promise<void> {
+  async processOffChainBetSettlements(
+    settlements: OffChainBetSettlement[],
+  ): Promise<void> {
     this.logger.log(`Processing ${settlements.length} bet settlements`);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -333,13 +346,15 @@ export class LeaderboardAggregationService {
             totalBets: 1,
             betsWon: settlement.isWin ? 1 : 0,
             betsLost: settlement.isWin ? 0 : 1,
-            totalWinnings: settlement.isWin ? Number(settlement.winningsAmount) : 0,
+            totalWinnings: settlement.isWin
+              ? Number(settlement.winningsAmount)
+              : 0,
             lastBetAt: new Date(settlement.timestamp * 1000),
           });
         } else {
           // Update betting stats
           leaderboard.totalBets++;
-          
+
           if (settlement.isWin) {
             leaderboard.betsWon++;
             leaderboard.totalWinnings += Number(settlement.winningsAmount);
@@ -357,7 +372,9 @@ export class LeaderboardAggregationService {
       }
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Successfully processed ${settlements.length} bet settlements`);
+      this.logger.log(
+        `Successfully processed ${settlements.length} bet settlements`,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to process bet settlements:`, error);
@@ -377,7 +394,10 @@ export class LeaderboardAggregationService {
       // For now, return empty object
       return {};
     } catch (error) {
-      this.logger.warn(`Failed to fetch off-chain stats for user ${userId}:`, error);
+      this.logger.warn(
+        `Failed to fetch off-chain stats for user ${userId}:`,
+        error,
+      );
       return {};
     }
   }
@@ -392,7 +412,10 @@ export class LeaderboardAggregationService {
       // For now, return empty object
       return {};
     } catch (error) {
-      this.logger.warn(`Failed to fetch on-chain staking data for user ${userId}:`, error);
+      this.logger.warn(
+        `Failed to fetch on-chain staking data for user ${userId}:`,
+        error,
+      );
       return {};
     }
   }
@@ -418,17 +441,23 @@ export class LeaderboardAggregationService {
     const accuracyWeight = 0.7;
     const volumeWeight = 0.3;
     const volumeScore = Math.min(leaderboard.totalBets / 100, 1); // Normalize to 0-1
-    const bestPredictor = (Number(leaderboard.bettingAccuracy) * accuracyWeight) + (volumeScore * 100 * volumeWeight);
+    const bestPredictor =
+      Number(leaderboard.bettingAccuracy) * accuracyWeight +
+      volumeScore * 100 * volumeWeight;
 
     // Staking Yield = (Rewards / Total Staked) * 100
-    const stakingYield = Number(leaderboard.totalStaked) > 0 
-      ? (Number(leaderboard.totalStakingRewards) / Number(leaderboard.totalStaked)) * 100 
-      : 0;
+    const stakingYield =
+      Number(leaderboard.totalStaked) > 0
+        ? (Number(leaderboard.totalStakingRewards) /
+            Number(leaderboard.totalStaked)) *
+          100
+        : 0;
 
     // Average Bet Size = Total Winnings / Bets Won
-    const avgBetSize = leaderboard.betsWon > 0 
-      ? Number(leaderboard.totalWinnings) / leaderboard.betsWon 
-      : 0;
+    const avgBetSize =
+      leaderboard.betsWon > 0
+        ? Number(leaderboard.totalWinnings) / leaderboard.betsWon
+        : 0;
 
     return {
       netEarnings,
@@ -492,7 +521,10 @@ export class LeaderboardAggregationService {
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to handle bet update for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to handle bet update for user ${userId}:`,
+        error,
+      );
     } finally {
       await queryRunner.release();
     }
@@ -523,7 +555,10 @@ export class LeaderboardAggregationService {
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to handle stake update for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to handle stake update for user ${userId}:`,
+        error,
+      );
     } finally {
       await queryRunner.release();
     }
@@ -532,7 +567,10 @@ export class LeaderboardAggregationService {
   /**
    * Handle settlement-related real-time updates
    */
-  private async handleSettlementUpdate(userId: string, data: any): Promise<void> {
+  private async handleSettlementUpdate(
+    userId: string,
+    data: any,
+  ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -562,7 +600,10 @@ export class LeaderboardAggregationService {
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to handle settlement update for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to handle settlement update for user ${userId}:`,
+        error,
+      );
     } finally {
       await queryRunner.release();
     }
@@ -584,8 +625,8 @@ export class LeaderboardAggregationService {
       this.leaderboardRepository.count(),
       this.leaderboardRepository
         .createQueryBuilder('leaderboard')
-        .where('leaderboard.lastBetAt > :date', { 
-          date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+        .where('leaderboard.lastBetAt > :date', {
+          date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
         })
         .getCount(),
     ]);

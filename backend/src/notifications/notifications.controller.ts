@@ -1,5 +1,18 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
-import { NotificationsService, NotificationType, BaseNotification } from './notifications.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
+import {
+  NotificationsService,
+  NotificationType,
+  BaseNotification,
+} from './notifications.service';
 import { NotificationIntegrationService } from './notification-integration.service';
 
 /**
@@ -44,7 +57,9 @@ export class NotificationsController {
    * Get unread notification count for user
    */
   @Get('unread-count/:userId')
-  async getUnreadCount(@Param('userId') userId: string): Promise<{ count: number }> {
+  async getUnreadCount(
+    @Param('userId') userId: string,
+  ): Promise<{ count: number }> {
     const count = await this.notificationsService.getUnreadCount(userId);
     return { count };
   }
@@ -57,7 +72,10 @@ export class NotificationsController {
     @Param('notificationId') notificationId: string,
     @Body('userId') userId: string,
   ): Promise<{ success: boolean }> {
-    await this.notificationsService.markNotificationAsRead(userId, notificationId);
+    await this.notificationsService.markNotificationAsRead(
+      userId,
+      notificationId,
+    );
     return { success: true };
   }
 
@@ -65,7 +83,9 @@ export class NotificationsController {
    * Mark all notifications as read for user
    */
   @Put('read-all/:userId')
-  async markAllAsRead(@Param('userId') userId: string): Promise<{ success: boolean }> {
+  async markAllAsRead(
+    @Param('userId') userId: string,
+  ): Promise<{ success: boolean }> {
     await this.notificationsService.markAllNotificationsAsRead(userId);
     return { success: true };
   }
@@ -87,7 +107,9 @@ export class NotificationsController {
    */
   @Get('preferences/:userId')
   async getPreferences(@Param('userId') userId: string): Promise<any> {
-    return await this.notificationsService.getUserNotificationPreferences(userId);
+    return await this.notificationsService.getUserNotificationPreferences(
+      userId,
+    );
   }
 
   /**
@@ -98,21 +120,27 @@ export class NotificationsController {
     @Param('userId') userId: string,
     @Body() preferences: any,
   ): Promise<any> {
-    return await this.notificationsService.updateNotificationPreferences(userId, preferences);
+    return await this.notificationsService.updateNotificationPreferences(
+      userId,
+      preferences,
+    );
   }
 
   /**
    * Create custom notification (for testing/admin)
    */
   @Post('create')
-  async createNotification(@Body() data: {
-    type: NotificationType;
-    userId: string;
-    title: string;
-    message: string;
-    data?: any;
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-  }): Promise<{ success: boolean; notificationId: string }> {
+  async createNotification(
+    @Body()
+    data: {
+      type: NotificationType;
+      userId: string;
+      title: string;
+      message: string;
+      data?: any;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+    },
+  ): Promise<{ success: boolean; notificationId: string }> {
     await this.notificationsService.createNotification(
       data.type,
       data.userId,
@@ -129,12 +157,15 @@ export class NotificationsController {
    * Send system announcement
    */
   @Post('announcement')
-  async sendSystemAnnouncement(@Body() data: {
-    title: string;
-    message: string;
-    data?: any;
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-  }): Promise<{ success: boolean }> {
+  async sendSystemAnnouncement(
+    @Body()
+    data: {
+      title: string;
+      message: string;
+      data?: any;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+    },
+  ): Promise<{ success: boolean }> {
     await this.notificationIntegrationService.sendSystemAnnouncement(
       data.title,
       data.message,
@@ -165,15 +196,18 @@ export class NotificationsController {
    * Trigger bet outcome notification (for testing)
    */
   @Post('test/bet-outcome')
-  async testBetOutcome(@Body() data: {
-    userId: string;
-    betId: string;
-    isWin: boolean;
-    amount: number;
-    winningsAmount?: number;
-    betType: string;
-    odds: number;
-  }): Promise<{ success: boolean }> {
+  async testBetOutcome(
+    @Body()
+    data: {
+      userId: string;
+      betId: string;
+      isWin: boolean;
+      amount: number;
+      winningsAmount?: number;
+      betType: string;
+      odds: number;
+    },
+  ): Promise<{ success: boolean }> {
     await this.notificationIntegrationService.handleBetSettlement(
       data.userId,
       data.betId,
@@ -191,13 +225,16 @@ export class NotificationsController {
    * Trigger spin reward notification (for testing)
    */
   @Post('test/spin-reward')
-  async testSpinReward(@Body() data: {
-    userId: string;
-    spinId: string;
-    rewardAmount: number;
-    rewardType: string;
-    multiplier?: number;
-  }): Promise<{ success: boolean }> {
+  async testSpinReward(
+    @Body()
+    data: {
+      userId: string;
+      spinId: string;
+      rewardAmount: number;
+      rewardType: string;
+      multiplier?: number;
+    },
+  ): Promise<{ success: boolean }> {
     await this.notificationIntegrationService.handleSpinReward(
       data.userId,
       data.spinId,
@@ -213,21 +250,29 @@ export class NotificationsController {
    * Trigger leaderboard position change notification (for testing)
    */
   @Post('test/leaderboard-change')
-  async testLeaderboardChange(@Body() data: {
-    userId: string;
-    previousPosition: number;
-    newPosition: number;
-    metric: string;
-    totalUsers: number;
-  }): Promise<{ success: boolean }> {
-    await this.notificationsService.createLeaderboardPositionChangeNotification(data.userId, {
-      previousPosition: data.previousPosition,
-      newPosition: data.newPosition,
-      metric: data.metric,
-      totalUsers: data.totalUsers,
-      percentile: ((data.totalUsers - data.newPosition + 1) / data.totalUsers) * 100,
-      changeType: data.newPosition < data.previousPosition ? 'improved' : 'declined',
-    });
+  async testLeaderboardChange(
+    @Body()
+    data: {
+      userId: string;
+      previousPosition: number;
+      newPosition: number;
+      metric: string;
+      totalUsers: number;
+    },
+  ): Promise<{ success: boolean }> {
+    await this.notificationsService.createLeaderboardPositionChangeNotification(
+      data.userId,
+      {
+        previousPosition: data.previousPosition,
+        newPosition: data.newPosition,
+        metric: data.metric,
+        totalUsers: data.totalUsers,
+        percentile:
+          ((data.totalUsers - data.newPosition + 1) / data.totalUsers) * 100,
+        changeType:
+          data.newPosition < data.previousPosition ? 'improved' : 'declined',
+      },
+    );
 
     return { success: true };
   }

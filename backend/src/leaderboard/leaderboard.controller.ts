@@ -1,7 +1,10 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { LeaderboardQueryService } from './leaderboard-query.service';
 import { LeaderboardType } from './leaderboard-type.enum';
-import { LeaderboardAggregationService, UserLeaderboardStats } from './leaderboard-aggregation.service';
+import {
+  LeaderboardAggregationService,
+  UserLeaderboardStats,
+} from './leaderboard-aggregation.service';
 
 @Controller('leaderboard')
 export class LeaderboardController {
@@ -23,7 +26,9 @@ export class LeaderboardController {
    * Get user's comprehensive leaderboard stats
    */
   @Get('user/:userId')
-  async getUserStats(@Param('userId') userId: string): Promise<UserLeaderboardStats> {
+  async getUserStats(
+    @Param('userId') userId: string,
+  ): Promise<UserLeaderboardStats> {
     return this.aggregationService.getUserLeaderboardStats(userId);
   }
 
@@ -38,7 +43,7 @@ export class LeaderboardController {
   ): Promise<UserLeaderboardStats[]> {
     const limitNum = limit ? parseInt(limit, 10) : 100;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
-    const orderByType = orderBy as any || 'netEarnings';
+    const orderByType = (orderBy as any) || 'netEarnings';
 
     return this.aggregationService.getTopLeaderboard(
       limitNum,
@@ -63,16 +68,27 @@ export class LeaderboardController {
     @Param('userId') userId: string,
     @Param('metric') metric: string,
   ): Promise<{ rank: number; totalUsers: number; percentile: number }> {
-    const validMetrics = ['netEarnings', 'roi', 'bestPredictor', 'winningStreak', 'totalBets'];
+    const validMetrics = [
+      'netEarnings',
+      'roi',
+      'bestPredictor',
+      'winningStreak',
+      'totalBets',
+    ];
     if (!validMetrics.includes(metric)) {
       throw new Error(`Invalid metric: ${metric}`);
     }
 
-    const topUsers = await this.aggregationService.getTopLeaderboard(1000, 0, metric as any);
-    const userIndex = topUsers.findIndex(user => user.userId === userId);
+    const topUsers = await this.aggregationService.getTopLeaderboard(
+      1000,
+      0,
+      metric as any,
+    );
+    const userIndex = topUsers.findIndex((user) => user.userId === userId);
     const rank = userIndex >= 0 ? userIndex + 1 : -1;
     const totalUsers = topUsers.length;
-    const percentile = rank > 0 ? ((totalUsers - rank + 1) / totalUsers) * 100 : 0;
+    const percentile =
+      rank > 0 ? ((totalUsers - rank + 1) / totalUsers) * 100 : 0;
 
     return { rank, totalUsers, percentile: Math.round(percentile * 100) / 100 };
   }

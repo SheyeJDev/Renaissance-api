@@ -11,7 +11,11 @@ import { Spin } from '../spin/entities/spin.entity';
 import { Settlement } from '../blockchain/entities/settlement.entity';
 import { SorobanService } from '../blockchain/soroban.service';
 import { ValidateTransactionDto } from './dto/transaction-validation.dto';
-import { TransactionType, ValidationType, ValidationStatus } from './entities/transaction-validation-report.entity';
+import {
+  TransactionType,
+  ValidationType,
+  ValidationStatus,
+} from './entities/transaction-validation-report.entity';
 
 describe('TransactionValidationService', () => {
   let service: TransactionValidationService;
@@ -111,7 +115,9 @@ describe('TransactionValidationService', () => {
       ],
     }).compile();
 
-    service = module.get<TransactionValidationService>(TransactionValidationService);
+    service = module.get<TransactionValidationService>(
+      TransactionValidationService,
+    );
     reportRepository = module.get<Repository<TransactionValidationReport>>(
       getRepositoryToken(TransactionValidationReport),
     );
@@ -124,10 +130,12 @@ describe('TransactionValidationService', () => {
 
   describe('getConfig', () => {
     it('should return default configuration when no env vars set', () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue: any) => defaultValue);
-      
+      mockConfigService.get.mockImplementation(
+        (key: string, defaultValue: any) => defaultValue,
+      );
+
       const config = (service as any).getConfig();
-      
+
       expect(config.enabled).toBe(true);
       expect(config.autoRollbackOnCritical).toBe(true);
       expect(config.criticalViolationThreshold).toBe(1);
@@ -148,9 +156,9 @@ describe('TransactionValidationService', () => {
         .mockImplementationOnce(() => false) // validateOnStaking
         .mockImplementationOnce(() => '0 * * * *') // cronSchedule
         .mockImplementationOnce(() => false); // notifyOnViolations
-      
+
       const config = (service as any).getConfig();
-      
+
       expect(config.enabled).toBe(false);
       expect(config.autoRollbackOnCritical).toBe(false);
       expect(config.criticalViolationThreshold).toBe(2);
@@ -164,8 +172,10 @@ describe('TransactionValidationService', () => {
 
   describe('getValidationRules', () => {
     it('should return validation rules for bet settlement', () => {
-      const rules = (service as any).getValidationRules(TransactionType.BET_SETTLEMENT);
-      
+      const rules = (service as any).getValidationRules(
+        TransactionType.BET_SETTLEMENT,
+      );
+
       expect(rules).toHaveLength(4);
       expect(rules[0].name).toBe('balance_integrity_check');
       expect(rules[1].name).toBe('bet_state_consistency');
@@ -174,8 +184,10 @@ describe('TransactionValidationService', () => {
     });
 
     it('should return validation rules for spin payout', () => {
-      const rules = (service as any).getValidationRules(TransactionType.SPIN_PAYOUT);
-      
+      const rules = (service as any).getValidationRules(
+        TransactionType.SPIN_PAYOUT,
+      );
+
       expect(rules).toHaveLength(3);
       expect(rules[0].name).toBe('wallet_balance_check');
       expect(rules[1].name).toBe('spin_record_integrity');
@@ -190,12 +202,12 @@ describe('TransactionValidationService', () => {
         transactionType: TransactionType.BET_SETTLEMENT,
         validationType: ValidationType.BALANCE_INTEGRITY,
       };
-      
+
       mockConfigService.get.mockReturnValue(false); // disabled
-      
-      await expect(service.validateTransaction(dto))
-        .rejects
-        .toThrow('Transaction validation is disabled');
+
+      await expect(service.validateTransaction(dto)).rejects.toThrow(
+        'Transaction validation is disabled',
+      );
     });
 
     it('should create validation report and execute rules', async () => {
@@ -205,7 +217,7 @@ describe('TransactionValidationService', () => {
         validationType: ValidationType.BALANCE_INTEGRITY,
         userId: 'user-123',
       };
-      
+
       const mockReport = {
         id: 'report-123',
         status: ValidationStatus.PENDING,
@@ -221,7 +233,7 @@ describe('TransactionValidationService', () => {
         criticalViolations: 0,
         rollbackTriggered: false,
       };
-      
+
       mockConfigService.get.mockReturnValue(true);
       mockReportRepository.create.mockReturnValue(mockReport);
       mockReportRepository.save.mockResolvedValue(mockReport);
@@ -231,7 +243,7 @@ describe('TransactionValidationService', () => {
           description: 'Test rule',
           checkFunction: 'checkBalanceIntegrity',
           critical: true,
-        }
+        },
       ]);
       (service as any).executeValidationRule = jest.fn().mockResolvedValue({
         ruleName: 'test_rule',
@@ -239,9 +251,9 @@ describe('TransactionValidationService', () => {
         message: 'Test passed',
         timestamp: new Date(),
       });
-      
+
       const result = await service.validateTransaction(dto);
-      
+
       expect(result.status).toBe(ValidationStatus.PASSED);
       expect(result.transactionId).toBe('test-transaction');
       expect(result.userId).toBe('user-123');
@@ -254,7 +266,7 @@ describe('TransactionValidationService', () => {
         transactionType: TransactionType.BET_SETTLEMENT,
         validationType: ValidationType.BALANCE_INTEGRITY,
       };
-      
+
       const mockReport = {
         id: 'report-123',
         status: ValidationStatus.PENDING,
@@ -269,12 +281,12 @@ describe('TransactionValidationService', () => {
         criticalViolations: 1,
         rollbackTriggered: false,
       };
-      
+
       mockConfigService.get
         .mockReturnValueOnce(true) // enabled
         .mockReturnValueOnce(true) // autoRollbackOnCritical
         .mockReturnValueOnce(1); // criticalViolationThreshold
-      
+
       mockReportRepository.create.mockReturnValue(mockReport);
       mockReportRepository.save.mockResolvedValue(mockReport);
       (service as any).getValidationRules = jest.fn().mockReturnValue([
@@ -283,7 +295,7 @@ describe('TransactionValidationService', () => {
           description: 'Critical rule',
           checkFunction: 'checkBalanceIntegrity',
           critical: true,
-        }
+        },
       ]);
       (service as any).executeValidationRule = jest.fn().mockResolvedValue({
         ruleName: 'critical_rule',
@@ -292,9 +304,9 @@ describe('TransactionValidationService', () => {
         timestamp: new Date(),
       });
       (service as any).triggerRollback = jest.fn();
-      
+
       const result = await service.validateTransaction(dto);
-      
+
       expect(result.status).toBe(ValidationStatus.FAILED);
       expect(result.criticalViolations).toBe(1);
       expect((service as any).triggerRollback).toHaveBeenCalled();
@@ -306,23 +318,23 @@ describe('TransactionValidationService', () => {
         transactionType: TransactionType.BET_SETTLEMENT,
         validationType: ValidationType.BALANCE_INTEGRITY,
       };
-      
+
       mockConfigService.get.mockReturnValue(true);
       mockReportRepository.create.mockReturnValue({ id: 'test-report' });
       mockReportRepository.save.mockResolvedValue({ id: 'test-report' });
       (service as any).getValidationRules = jest.fn().mockImplementation(() => {
         throw new Error('Database connection failed');
       });
-      
-      await expect(service.validateTransaction(dto))
-        .rejects
-        .toThrow('Database connection failed');
-      
+
+      await expect(service.validateTransaction(dto)).rejects.toThrow(
+        'Database connection failed',
+      );
+
       expect(mockReportRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: ValidationStatus.FAILED,
           errorMessage: 'Database connection failed',
-        })
+        }),
       );
     });
   });
@@ -335,20 +347,23 @@ describe('TransactionValidationService', () => {
         checkFunction: 'checkBalanceIntegrity',
         critical: true,
       };
-      
+
       const context = {
         transactionId: 'test-transaction',
         transactionType: TransactionType.BET_SETTLEMENT,
       };
-      
+
       (service as any).checkBalanceIntegrity = jest.fn().mockResolvedValue({
         ruleName: 'balance_integrity_check',
         passed: true,
         message: 'Balance check passed',
       });
-      
-      const result = await (service as any).executeValidationRule(rule, context);
-      
+
+      const result = await (service as any).executeValidationRule(
+        rule,
+        context,
+      );
+
       expect(result.ruleName).toBe('balance_integrity_check');
       expect(result.passed).toBe(true);
       expect(result.message).toBe('Balance check passed');
@@ -361,14 +376,17 @@ describe('TransactionValidationService', () => {
         checkFunction: 'unknownFunction',
         critical: true,
       };
-      
+
       const context = {
         transactionId: 'test-transaction',
         transactionType: TransactionType.BET_SETTLEMENT,
       };
-      
-      const result = await (service as any).executeValidationRule(rule, context);
-      
+
+      const result = await (service as any).executeValidationRule(
+        rule,
+        context,
+      );
+
       expect(result.ruleName).toBe('unknown_rule');
       expect(result.passed).toBe(false);
       expect(result.message).toContain('Unknown validation function');
@@ -384,20 +402,26 @@ describe('TransactionValidationService', () => {
         rollbackReason: null,
         rollbackCompletedAt: null,
       };
-      
-      const violations = [{
-        type: 'balance_mismatch',
-        severity: 'critical',
-        description: 'Balance mismatch detected',
-        affectedEntity: 'User',
-        affectedId: 'user-123',
-        currentValue: 100,
-        expectedValue: 150,
-        detectedAt: new Date(),
-      }];
-      
-      await (service as any).triggerRollback(mockReport, 'Test rollback reason', violations);
-      
+
+      const violations = [
+        {
+          type: 'balance_mismatch',
+          severity: 'critical',
+          description: 'Balance mismatch detected',
+          affectedEntity: 'User',
+          affectedId: 'user-123',
+          currentValue: 100,
+          expectedValue: 150,
+          detectedAt: new Date(),
+        },
+      ];
+
+      await (service as any).triggerRollback(
+        mockReport,
+        'Test rollback reason',
+        violations,
+      );
+
       expect(mockReport.rollbackTriggered).toBe(true);
       expect(mockReport.rollbackReason).toBe('Test rollback reason');
       expect(mockReport.rollbackCompletedAt).toBeDefined();
@@ -410,7 +434,7 @@ describe('TransactionValidationService', () => {
         id: 'report-123',
         transactionId: 'test-transaction',
       };
-      
+
       const violations = [
         {
           type: 'balance_mismatch',
@@ -431,12 +455,12 @@ describe('TransactionValidationService', () => {
           currentValue: 'pending',
           expectedValue: 'completed',
           detectedAt: new Date(),
-        }
+        },
       ];
-      
+
       // This would normally log to console, but we can't easily test that
       await (service as any).notifyViolations(mockReport, violations);
-      
+
       // Test passes if no exception is thrown
       expect(true).toBe(true);
     });

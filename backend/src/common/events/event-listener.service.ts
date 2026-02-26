@@ -16,10 +16,7 @@ import {
   ContractEventType,
 } from './entities/contract-event-log.entity';
 import { ContractEventCheckpoint } from './entities/contract-event-checkpoint.entity';
-import {
-  NFTReward,
-  NFTTier,
-} from '../../spin-game/entities/nft-reward.entity';
+import { NFTReward, NFTTier } from '../../spin-game/entities/nft-reward.entity';
 import { Spin, SpinOutcome, SpinStatus } from '../../spin/entities/spin.entity';
 import {
   SpinSession,
@@ -429,8 +426,12 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
     }
 
     const action =
-      this.readString(event.payload, ['action', 'event', 'type', 'operation']) ||
-      this.deriveActionFromTopics(event.topics);
+      this.readString(event.payload, [
+        'action',
+        'event',
+        'type',
+        'operation',
+      ]) || this.deriveActionFromTopics(event.topics);
 
     const explicitDelta = this.readNumber(event.payload, [
       'balanceDelta',
@@ -569,7 +570,9 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
     await manager.save(spin);
 
     if (spinId) {
-      const spinSessionWhere: FindOptionsWhere<SpinSession>[] = [{ id: spinId }];
+      const spinSessionWhere: FindOptionsWhere<SpinSession>[] = [
+        { id: spinId },
+      ];
       if (txReference) {
         spinSessionWhere.push({ txReference });
       }
@@ -744,8 +747,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
         'winningsAmount',
         'winnings_amount',
         'amount',
-      ]) ??
-      (parsedStatus === BetStatus.WON ? Number(bet.potentialPayout) : 0);
+      ]) ?? (parsedStatus === BetStatus.WON ? Number(bet.potentialPayout) : 0);
 
     const referenceId = this.toReferenceId(event.id);
     const existingTx = await manager.findOne(Transaction, {
@@ -845,14 +847,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
       return ContractEventType.STAKING;
     }
 
-    if (
-      this.readString(payload, [
-        'nftId',
-        'nft_id',
-        'tokenId',
-        'token_id',
-      ])
-    ) {
+    if (this.readString(payload, ['nftId', 'nft_id', 'tokenId', 'token_id'])) {
       return ContractEventType.NFT_MINT;
     }
     if (this.readString(payload, ['betId', 'bet_id'])) {
@@ -971,14 +966,15 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
     if (input instanceof Map) {
       const result: Record<string, unknown> = {};
       for (const [key, value] of input.entries()) {
-        result[String(this.normalizeUnknown(key))] = this.normalizeUnknown(value);
+        result[String(this.normalizeUnknown(key))] =
+          this.normalizeUnknown(value);
       }
       return result;
     }
 
     if (typeof input === 'object') {
       const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(input as object)) {
+      for (const [key, value] of Object.entries(input)) {
         result[key] = this.normalizeUnknown(value);
       }
       return result;
@@ -987,10 +983,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
     return input;
   }
 
-  private readValue(
-    payload: Record<string, unknown>,
-    keys: string[],
-  ): unknown {
+  private readValue(payload: Record<string, unknown>, keys: string[]): unknown {
     for (const key of keys) {
       if (Object.prototype.hasOwnProperty.call(payload, key)) {
         const value = payload[key];
@@ -1211,7 +1204,10 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
       { id: spinId },
       { sessionId: spinId },
     ];
-    return manager.findOne(Spin, { where, lock: { mode: 'pessimistic_write' } });
+    return manager.findOne(Spin, {
+      where,
+      lock: { mode: 'pessimistic_write' },
+    });
   }
 
   private toReferenceId(eventId: string): string {
@@ -1376,7 +1372,8 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
         Number(checkpoint.totalSkipped) + params.skippedDelta;
     }
     if (params.failedDelta) {
-      checkpoint.totalFailed = Number(checkpoint.totalFailed) + params.failedDelta;
+      checkpoint.totalFailed =
+        Number(checkpoint.totalFailed) + params.failedDelta;
     }
 
     await this.checkpointRepository.save(checkpoint);

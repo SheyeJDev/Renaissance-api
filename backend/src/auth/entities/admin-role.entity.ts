@@ -18,7 +18,11 @@ export class AdminRoleEntity extends BaseEntity {
   @Column({ name: 'assigned_by' })
   assignedBy: string;
 
-  @Column({ name: 'assigned_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'assigned_at',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   assignedAt: Date;
 
   @Column({ name: 'expires_at', type: 'timestamp', nullable: true })

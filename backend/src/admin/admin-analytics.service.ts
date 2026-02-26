@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { Bet } from '../bets/entities/bet.entity';
+import { Bet, BetStatus } from '../bets/entities/bet.entity';
 import { Spin } from '../spin/entities/spin.entity';
 import { SpinSession } from '../spin/entities/spin-session.entity';
 import { Match } from '../matches/entities/match.entity';
-import { Cache } from 'cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class AdminAnalyticsService {
@@ -14,7 +14,8 @@ export class AdminAnalyticsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Bet) private betRepo: Repository<Bet>,
     @InjectRepository(Spin) private spinRepo: Repository<Spin>,
-    @InjectRepository(SpinSession) private spinSessionRepo: Repository<SpinSession>,
+    @InjectRepository(SpinSession)
+    private spinSessionRepo: Repository<SpinSession>,
     @InjectRepository(Match) private matchRepo: Repository<Match>,
     private cacheManager: Cache,
   ) {}
@@ -40,7 +41,10 @@ export class AdminAnalyticsService {
     return Number(result.sum) || 0;
   }
 
-  async getSpinRevenueVsPayouts(): Promise<{ revenue: number; payouts: number }> {
+  async getSpinRevenueVsPayouts(): Promise<{
+    revenue: number;
+    payouts: number;
+  }> {
     const revenue = await this.spinRepo
       .createQueryBuilder('spin')
       .select('SUM(spin.cost)', 'sum')
@@ -57,10 +61,12 @@ export class AdminAnalyticsService {
   }
 
   async getOpenBets(): Promise<number> {
-    return this.betRepo.count({ where: { status: 'open' } });
+    return this.betRepo.count({ where: { status: BetStatus.PENDING } });
   }
 
   async getSuspiciousUsers(): Promise<User[]> {
-    return this.userRepo.find({ where: { flaggedSuspicious: true } });
+    // Note: flaggedSuspicious field doesn't exist in User entity
+    // This method returns empty array until the field is added
+    return [];
   }
 }

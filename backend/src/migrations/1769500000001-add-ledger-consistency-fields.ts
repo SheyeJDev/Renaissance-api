@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableColumn, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableColumn,
+  TableIndex,
+} from 'typeorm';
 
 export class AddLedgerConsistencyFields1769500000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -178,24 +184,69 @@ export class AddLedgerConsistencyFields1769500000001 implements MigrationInterfa
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop indexes
-    await queryRunner.dropIndex('reconciliation_reports', 'IDX_RECONCILIATION_REPORT_TYPE');
-    await queryRunner.dropIndex('reconciliation_reports', 'IDX_RECONCILIATION_REPORT_TOLERANCE');
-    await queryRunner.dropIndex('reconciliation_reports', 'IDX_RECONCILIATION_REPORT_USERS_CHECKED');
+    await queryRunner.dropIndex(
+      'reconciliation_reports',
+      'IDX_RECONCILIATION_REPORT_TYPE',
+    );
+    await queryRunner.dropIndex(
+      'reconciliation_reports',
+      'IDX_RECONCILIATION_REPORT_TOLERANCE',
+    );
+    await queryRunner.dropIndex(
+      'reconciliation_reports',
+      'IDX_RECONCILIATION_REPORT_USERS_CHECKED',
+    );
 
     // Drop columns
-    await queryRunner.dropColumn('reconciliation_reports', 'ledger_mismatch_count');
-    await queryRunner.dropColumn('reconciliation_reports', 'onchain_discrepancy_count');
-    await queryRunner.dropColumn('reconciliation_reports', 'offchain_discrepancy_count');
-    await queryRunner.dropColumn('reconciliation_reports', 'rounding_difference_count');
-    await queryRunner.dropColumn('reconciliation_reports', 'tolerance_threshold');
-    await queryRunner.dropColumn('reconciliation_reports', 'total_users_checked');
-    await queryRunner.dropColumn('reconciliation_reports', 'users_with_discrepancies');
-    await queryRunner.dropColumn('reconciliation_reports', 'users_within_tolerance');
-    await queryRunner.dropColumn('reconciliation_reports', 'total_discrepancy_amount');
-    await queryRunner.dropColumn('reconciliation_reports', 'average_discrepancy');
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'ledger_mismatch_count',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'onchain_discrepancy_count',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'offchain_discrepancy_count',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'rounding_difference_count',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'tolerance_threshold',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'total_users_checked',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'users_with_discrepancies',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'users_within_tolerance',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'total_discrepancy_amount',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'average_discrepancy',
+    );
     await queryRunner.dropColumn('reconciliation_reports', 'max_discrepancy');
     await queryRunner.dropColumn('reconciliation_reports', 'min_discrepancy');
-    await queryRunner.dropColumn('reconciliation_reports', 'ledger_consistency_data');
-    await queryRunner.dropColumn('reconciliation_reports', 'balance_discrepancies');
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'ledger_consistency_data',
+    );
+    await queryRunner.dropColumn(
+      'reconciliation_reports',
+      'balance_discrepancies',
+    );
   }
 }

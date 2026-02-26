@@ -10,19 +10,19 @@ const mockServer = {
 };
 
 jest.mock('@stellar/stellar-sdk', () => {
-    return {
-        rpc: {
-            Server: jest.fn().mockImplementation(() => mockServer),
-        },
-        Keypair: {
-            fromSecret: jest.fn().mockReturnValue({
-                publicKey: () => 'MOCK_PUBLIC_KEY',
-            }),
-        },
-        TransactionBuilder: jest.fn(),
-        Networks: { TESTNET: 'TESTNET' },
-        TimeoutInfinite: 0,
-    };
+  return {
+    rpc: {
+      Server: jest.fn().mockImplementation(() => mockServer),
+    },
+    Keypair: {
+      fromSecret: jest.fn().mockReturnValue({
+        publicKey: () => 'MOCK_PUBLIC_KEY',
+      }),
+    },
+    TransactionBuilder: jest.fn(),
+    Networks: { TESTNET: 'TESTNET' },
+    TimeoutInfinite: 0,
+  };
 });
 
 describe('SorobanService', () => {
@@ -37,8 +37,10 @@ describe('SorobanService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key) => {
-              if (key === 'blockchain.stellar.rpcUrl') return 'https://mock-rpc';
-              if (key === 'blockchain.stellar.networkPassphrase') return 'secret';
+              if (key === 'blockchain.stellar.rpcUrl')
+                return 'https://mock-rpc';
+              if (key === 'blockchain.stellar.networkPassphrase')
+                return 'secret';
               if (key === 'blockchain.soroban.contractId') return 'C_MOCK';
               if (key === 'blockchain.soroban.adminSecret') return 'S_SECRET';
               return null;
@@ -56,18 +58,22 @@ describe('SorobanService', () => {
   });
 
   it('should initialize client on module init', () => {
-      service.onModuleInit();
-      // Check if logged or property set - private props hard to check without verifying mocks
-      // In this case, if no error thrown, it's good.
-      expect(service).toBeDefined();
+    service.onModuleInit();
+    // Check if logged or property set - private props hard to check without verifying mocks
+    // In this case, if no error thrown, it's good.
+    expect(service).toBeDefined();
   });
 
   it('should invoke contract', async () => {
-      service.onModuleInit(); // Ensure init
-      
-      mockServer.getAccount.mockResolvedValue({ sequence: '1' });
-      
-      const result = await service.invokeContract('settle', ['betId', 'outcome', 100]);
-      expect(result).toContain('mock_tx_hash');
+    service.onModuleInit(); // Ensure init
+
+    mockServer.getAccount.mockResolvedValue({ sequence: '1' });
+
+    const result = await service.invokeContract('settle', [
+      'betId',
+      'outcome',
+      100,
+    ]);
+    expect(result).toContain('mock_tx_hash');
   });
 });

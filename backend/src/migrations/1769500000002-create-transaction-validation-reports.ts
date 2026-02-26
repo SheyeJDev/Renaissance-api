@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableColumn, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableColumn,
+  TableIndex,
+} from 'typeorm';
 
 export class CreateTransactionValidationReports1769500000002 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -22,12 +28,23 @@ export class CreateTransactionValidationReports1769500000002 implements Migratio
           {
             name: 'transaction_type',
             type: 'enum',
-            enum: ['bet_settlement', 'spin_payout', 'staking_reward', 'staking_penalty', 'wallet_transfer'],
+            enum: [
+              'bet_settlement',
+              'spin_payout',
+              'staking_reward',
+              'staking_penalty',
+              'wallet_transfer',
+            ],
           },
           {
             name: 'validation_type',
             type: 'enum',
-            enum: ['balance_integrity', 'state_consistency', 'atomicity_check', 'onchain_reconciliation'],
+            enum: [
+              'balance_integrity',
+              'state_consistency',
+              'atomicity_check',
+              'onchain_reconciliation',
+            ],
           },
           {
             name: 'transaction_id',
@@ -178,12 +195,30 @@ export class CreateTransactionValidationReports1769500000002 implements Migratio
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop indexes
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_STATUS');
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_TYPE');
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_CREATED_AT');
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_STATUS_CREATED');
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_VALIDATION_TYPE');
-    await queryRunner.dropIndex('transaction_validation_reports', 'IDX_TX_VALIDATION_TRANSACTION_ID');
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_STATUS',
+    );
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_TYPE',
+    );
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_CREATED_AT',
+    );
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_STATUS_CREATED',
+    );
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_VALIDATION_TYPE',
+    );
+    await queryRunner.dropIndex(
+      'transaction_validation_reports',
+      'IDX_TX_VALIDATION_TRANSACTION_ID',
+    );
 
     // Drop table
     await queryRunner.dropTable('transaction_validation_reports');

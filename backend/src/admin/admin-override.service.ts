@@ -1,20 +1,33 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AdminOverrideLog, AdminOverrideAction, OverrideStatus } from './entities/admin-override-log.entity';
+import {
+  AdminOverrideLog,
+  AdminOverrideAction,
+  OverrideStatus,
+} from './entities/admin-override-log.entity';
 import { User } from '../users/entities/user.entity';
 import { Bet, BetStatus } from '../bets/entities/bet.entity';
-import { Transaction, TransactionType, TransactionStatus } from '../transactions/entities/transaction.entity';
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
 import { FreeBetVoucher } from '../free-bet-vouchers/entities/free-bet-voucher.entity';
 import { Spin, SpinStatus } from '../spin/entities/spin.entity';
-import { 
-  BalanceAdjustmentDto, 
-  BetOutcomeCorrectionDto, 
-  FreeBetVoucherIssuanceDto, 
+import {
+  BalanceAdjustmentDto,
+  BetOutcomeCorrectionDto,
+  FreeBetVoucherIssuanceDto,
   SpinRewardReversalDto,
   OverrideApprovalDto,
   OverrideReversalDto,
-  OverrideQueryDto
+  OverrideQueryDto,
 } from './dto/admin-override.dto';
 
 @Injectable()
@@ -61,13 +74,14 @@ export class AdminOverrideService {
 
       // Calculate new balance
       const currentBalance = Number(user.walletBalance);
-      const adjustmentAmount = dto.operation === 'add' 
-        ? dto.amount 
-        : -dto.amount;
+      const adjustmentAmount =
+        dto.operation === 'add' ? dto.amount : -dto.amount;
       const newBalance = currentBalance + adjustmentAmount;
 
       if (newBalance < 0) {
-        throw new BadRequestException('Balance adjustment would result in negative balance');
+        throw new BadRequestException(
+          'Balance adjustment would result in negative balance',
+        );
       }
 
       // Create override log entry
@@ -104,9 +118,10 @@ export class AdminOverrideService {
       // Create transaction record
       const transaction = this.transactionRepository.create({
         userId,
-        type: adjustmentAmount > 0 
-          ? TransactionType.WALLET_DEPOSIT 
-          : TransactionType.WALLET_WITHDRAWAL,
+        type:
+          adjustmentAmount > 0
+            ? TransactionType.WALLET_DEPOSIT
+            : TransactionType.WALLET_WITHDRAWAL,
         amount: Math.abs(adjustmentAmount),
         status: TransactionStatus.COMPLETED,
         referenceId: overrideLog.id,
@@ -156,8 +171,10 @@ export class AdminOverrideService {
       await this.validateAdminPermissions(adminId);
 
       // Check if bet is already settled (requires special approval)
-      const isSettled = bet.status === BetStatus.WON || bet.status === BetStatus.LOST;
-      const requiresOnChainApproval = isSettled || dto.requiresOnChainApproval || false;
+      const isSettled =
+        bet.status === BetStatus.WON || bet.status === BetStatus.LOST;
+      const requiresOnChainApproval =
+        isSettled || dto.requiresOnChainApproval || false;
 
       // Store previous values
       const previousValues = {
@@ -167,7 +184,7 @@ export class AdminOverrideService {
 
       // Update bet outcome
       let newStatus = bet.status;
-      let newSettledAt = bet.settledAt;
+      let newSettledAt: Date | undefined = bet.settledAt;
 
       switch (dto.newOutcome) {
         case 'won':
@@ -184,7 +201,7 @@ export class AdminOverrideService {
           break;
         case 'pending':
           newStatus = BetStatus.PENDING;
-          newSettledAt = null;
+          newSettledAt = undefined;
           break;
       }
 
@@ -192,7 +209,9 @@ export class AdminOverrideService {
       const overrideLog = this.overrideLogRepository.create({
         adminId,
         actionType: AdminOverrideAction.BET_OUTCOME_CORRECTION,
-        status: requiresOnChainApproval ? OverrideStatus.PENDING : OverrideStatus.EXECUTED,
+        status: requiresOnChainApproval
+          ? OverrideStatus.PENDING
+          : OverrideStatus.EXECUTED,
         affectedUserId: bet.userId,
         affectedEntityId: dto.betId,
         affectedEntityType: 'bet',
@@ -208,18 +227,21 @@ export class AdminOverrideService {
           outcomeReason: dto.outcomeReason,
           requiresOnChainApproval,
         },
-        executedAt: requiresOnChainApproval ? null : new Date(),
-        executedBy: requiresOnChainApproval ? null : adminId,
+        executedAt: requiresOnChainApproval ? undefined : new Date(),
+        executedBy: requiresOnChainApproval ? undefined : adminId,
         requiresOnChainApproval,
-      });
+      } as any);
 
-      await queryRunner.manager.save(AdminOverrideLog, overrideLog);
+      const savedOverrideLog = (await queryRunner.manager.save(
+        AdminOverrideLog,
+        overrideLog,
+      )) as unknown as AdminOverrideLog;
 
       // If not requiring on-chain approval, execute immediately
       if (!requiresOnChainApproval) {
         // Update bet
         bet.status = newStatus;
-        bet.settledAt = newSettledAt;
+        bet.settledAt = newSettledAt as any;
         await queryRunner.manager.save(Bet, bet);
 
         // Handle balance adjustments for user if bet was won
@@ -240,9 +262,9 @@ export class AdminOverrideService {
               amount: Number(dto.payoutAmount),
               status: TransactionStatus.COMPLETED,
               referenceId: bet.id,
-              relatedEntityId: overrideLog.id,
+              relatedEntityId: savedOverrideLog.id,
               metadata: {
-                adminOverrideId: overrideLog.id,
+                adminOverrideId: savedOverrideLog.id,
                 reason: dto.reason,
               },
             });
@@ -252,7 +274,7 @@ export class AdminOverrideService {
       }
 
       await queryRunner.commitTransaction();
-      return overrideLog;
+      return savedOverrideLog;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -315,7 +337,7 @@ export class AdminOverrideService {
         affectedEntityId: voucher.id,
         affectedEntityType: 'free_bet_voucher',
         reason: dto.reason,
-        previousValues: null,
+        previousValues: {} as any,
         newValues: {
           amount: dto.amount,
           expiresAt: dto.expiresAt,
@@ -327,12 +349,15 @@ export class AdminOverrideService {
         executedAt: new Date(),
         executedBy: adminId,
         requiresOnChainApproval: false,
-      });
+      } as any);
 
-      await queryRunner.manager.save(AdminOverrideLog, overrideLog);
+      const savedOverrideLog = (await queryRunner.manager.save(
+        AdminOverrideLog,
+        overrideLog,
+      )) as unknown as AdminOverrideLog;
 
       await queryRunner.commitTransaction();
-      return overrideLog;
+      return savedOverrideLog;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -368,7 +393,9 @@ export class AdminOverrideService {
       // Check if spin is already settled on-chain
       const isSettled = spin.status === SpinStatus.COMPLETED;
       if (isSettled) {
-        throw new BadRequestException('Cannot reverse spin reward after on-chain settlement');
+        throw new BadRequestException(
+          'Cannot reverse spin reward after on-chain settlement',
+        );
       }
 
       // Store previous values
@@ -430,9 +457,11 @@ export class AdminOverrideService {
         if (user) {
           const currentBalance = Number(user.walletBalance);
           const newBalance = currentBalance - Number(spin.payoutAmount);
-          
+
           if (newBalance < 0) {
-            throw new BadRequestException('Cannot reverse spin reward: insufficient user balance');
+            throw new BadRequestException(
+              'Cannot reverse spin reward: insufficient user balance',
+            );
           }
 
           user.walletBalance = newBalance as any;
@@ -472,15 +501,21 @@ export class AdminOverrideService {
   async getOverrideLogs(
     query: OverrideQueryDto,
   ): Promise<{ data: AdminOverrideLog[]; total: number }> {
-    const qb = this.overrideLogRepository.createQueryBuilder('override')
+    const qb = this.overrideLogRepository
+      .createQueryBuilder('override')
       .leftJoinAndSelect('override.admin', 'admin')
       .leftJoinAndSelect('override.affectedUser', 'affectedUser')
-      .leftJoinAndSelect('override.onChainApprovalAdmin', 'onChainApprovalAdmin')
+      .leftJoinAndSelect(
+        'override.onChainApprovalAdmin',
+        'onChainApprovalAdmin',
+      )
       .leftJoinAndSelect('override.reversedByAdmin', 'reversedByAdmin');
 
     // Apply filters
     if (query.actionType) {
-      qb.andWhere('override.actionType = :actionType', { actionType: query.actionType });
+      qb.andWhere('override.actionType = :actionType', {
+        actionType: query.actionType,
+      });
     }
 
     if (query.status) {
@@ -492,11 +527,15 @@ export class AdminOverrideService {
     }
 
     if (query.affectedUserId) {
-      qb.andWhere('override.affectedUserId = :affectedUserId', { affectedUserId: query.affectedUserId });
+      qb.andWhere('override.affectedUserId = :affectedUserId', {
+        affectedUserId: query.affectedUserId,
+      });
     }
 
     if (query.startDate) {
-      qb.andWhere('override.createdAt >= :startDate', { startDate: query.startDate });
+      qb.andWhere('override.createdAt >= :startDate', {
+        startDate: query.startDate,
+      });
     }
 
     if (query.endDate) {
@@ -505,10 +544,13 @@ export class AdminOverrideService {
 
     const total = await qb.getCount();
 
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+
     const data = await qb
       .orderBy('override.createdAt', 'DESC')
-      .skip((query.page - 1) * query.limit)
-      .take(query.limit)
+      .skip((page - 1) * limit)
+      .take(limit)
       .getMany();
 
     return { data, total };
@@ -517,13 +559,16 @@ export class AdminOverrideService {
   /**
    * Validate admin permissions
    */
-  private async validateAdminPermissions(adminId: string, requiresElevated: boolean = false): Promise<void> {
+  private async validateAdminPermissions(
+    adminId: string,
+    requiresElevated: boolean = false,
+  ): Promise<void> {
     // In a real implementation, this would check:
     // 1. User exists and is admin
     // 2. User has required role/permissions
     // 3. User is not suspended/banned
     // 4. Rate limiting checks
-    
+
     // For now, we'll just verify the admin exists
     const admin = await this.userRepository.findOne({
       where: { id: adminId },

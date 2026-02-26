@@ -59,15 +59,29 @@ export class AuditService {
 
     const report = this.reportRepo.create({ status, violations });
     await this.reportRepo.save(report);
-    this.logger.log(`Audit completed. Status: ${status}, Violations: ${violations.length}`);
+    this.logger.log(
+      `Audit completed. Status: ${status}, Violations: ${violations.length}`,
+    );
     return report;
   }
 
   // --- Mocked methods for demonstration ---
-  private async mockSumUserBalances(): Promise<number> { return 100000; }
-  private async mockTreasuryReserves(): Promise<number> { return 120000; }
-  private async mockLockedBets(): Promise<number> { return 5000; }
-  private async mockEscrowLocked(): Promise<number> { return 5000; }
-  private async mockBackendNFTCount(): Promise<number> { return 1000; }
-  private async mockContractNFTCount(): Promise<number> { return 1000; }
+  private async mockSumUserBalances(): Promise<number> {
+    return 100000;
+  }
+  private async mockTreasuryReserves(): Promise<number> {
+    return 120000;
+  }
+  private async mockLockedBets(): Promise<number> {
+    return 5000;
+  }
+  private async mockEscrowLocked(): Promise<number> {
+    return 5000;
+  }
+  private async mockBackendNFTCount(): Promise<number> {
+    return 1000;
+  }
+  private async mockContractNFTCount(): Promise<number> {
+    return 1000;
+  }
 }

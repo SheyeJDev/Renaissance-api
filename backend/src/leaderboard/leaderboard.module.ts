@@ -12,7 +12,7 @@ import { LeaderboardController } from './leaderboard.controller';
 import { LeaderboardQueryService } from './leaderboard-query.service';
 import { LeaderboardAggregationService } from './leaderboard-aggregation.service';
 import { LeaderboardSyncService } from './leaderboard-sync.service';
-import { LeaderboardGateway } from './leaderboard.gateway';
+// import { LeaderboardGateway } from './leaderboard.gateway';
 import { SpinSettledEventHandler } from './listeners/spin-settled.listener';
 import { SeasonService } from './services/season.service';
 import { SeasonalLeaderboardService } from './services/seasonal-leaderboard.service';
@@ -38,7 +38,7 @@ import { SeasonController } from './controllers/season.controller';
     SpinSettledEventHandler,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    LeaderboardGateway,
+    // LeaderboardGateway,
     SeasonService,
     SeasonalLeaderboardService,
     SeasonResetService,
@@ -48,7 +48,7 @@ import { SeasonController } from './controllers/season.controller';
     LeaderboardQueryService,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    LeaderboardGateway,
+    // LeaderboardGateway,
     SeasonService,
     SeasonalLeaderboardService,
     SeasonResetService,

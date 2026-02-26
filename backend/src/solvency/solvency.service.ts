@@ -17,7 +17,10 @@ export class SolvencyService {
     // Inject treasury and spin pool services as needed
   ) {}
 
-  async computeAndStoreMetrics(treasuryBalance: number, spinPoolLiabilities: number): Promise<SolvencyMetrics> {
+  async computeAndStoreMetrics(
+    treasuryBalance: number,
+    spinPoolLiabilities: number,
+  ): Promise<SolvencyMetrics> {
     // Compute locked bets and max potential payout
     const [totalLockedBets, maxPotentialPayout] = await this.betRepo
       .createQueryBuilder('bet')
@@ -25,10 +28,15 @@ export class SolvencyService {
       .addSelect('SUM(bet.potentialPayout)', 'maxPotentialPayout')
       .where('bet.status = :status', { status: 'LOCKED' })
       .getRawOne()
-      .then(res => [Number(res.totalLockedBets) || 0, Number(res.maxPotentialPayout) || 0]);
+      .then((res) => [
+        Number(res.totalLockedBets) || 0,
+        Number(res.maxPotentialPayout) || 0,
+      ]);
 
-    const coverageRatio = maxPotentialPayout > 0 ? treasuryBalance / maxPotentialPayout : 1;
-    const spinPoolSolvency = spinPoolLiabilities > 0 ? treasuryBalance / spinPoolLiabilities : 1;
+    const coverageRatio =
+      maxPotentialPayout > 0 ? treasuryBalance / maxPotentialPayout : 1;
+    const spinPoolSolvency =
+      spinPoolLiabilities > 0 ? treasuryBalance / spinPoolLiabilities : 1;
 
     const metrics = this.metricsRepo.create({
       totalLockedBets,
@@ -39,12 +47,16 @@ export class SolvencyService {
       spinPoolSolvency,
     });
     await this.metricsRepo.save(metrics);
-    this.logger.log(`Solvency metrics stored: Coverage ratio = ${coverageRatio}`);
+    this.logger.log(
+      `Solvency metrics stored: Coverage ratio = ${coverageRatio}`,
+    );
     return metrics;
   }
 
   async getLatestMetrics(): Promise<SolvencyMetricsDto> {
-    const latest = await this.metricsRepo.findOne({ order: { createdAt: 'DESC' } });
+    const latest = await this.metricsRepo.findOne({
+      order: { createdAt: 'DESC' },
+    });
     if (!latest) throw new Error('No solvency metrics found');
     return latest;
   }
@@ -52,6 +64,10 @@ export class SolvencyService {
   async getMetricsHistory(days = 30): Promise<SolvencyMetricsDto[]> {
     const since = new Date();
     since.setDate(since.getDate() - days);
-    return this.metricsRepo.find({ where: { createdAt: () => `createdAt > '${since.toISOString()}'` }, order: { createdAt: 'DESC' } });
+    const { MoreThan } = await import('typeorm');
+    return this.metricsRepo.find({
+      where: { createdAt: MoreThan(since) },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

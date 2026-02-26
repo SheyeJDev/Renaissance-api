@@ -25,9 +25,14 @@ export class SolvencyScheduler {
     this.logger.log('Running daily solvency metrics calculation...');
     const treasuryBalance = await this.fetchTreasuryBalance();
     const spinPoolLiabilities = await this.fetchSpinPoolLiabilities();
-    const metrics = await this.solvencyService.computeAndStoreMetrics(treasuryBalance, spinPoolLiabilities);
+    const metrics = await this.solvencyService.computeAndStoreMetrics(
+      treasuryBalance,
+      spinPoolLiabilities,
+    );
     if (metrics.coverageRatio < this.COVERAGE_THRESHOLD) {
-      this.logger.error(`ALERT: Treasury coverage ratio below threshold! Ratio: ${metrics.coverageRatio}`);
+      this.logger.error(
+        `ALERT: Treasury coverage ratio below threshold! Ratio: ${metrics.coverageRatio}`,
+      );
       // TODO: Integrate with alerting/notification system
     }
   }

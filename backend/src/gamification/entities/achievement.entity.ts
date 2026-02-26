@@ -12,8 +12,8 @@ export enum TriggerEvent {
 }
 
 export enum RuleType {
-  COUNT = 'COUNT',                 // Count frequency (e.g., place 10 bets)
-  SUM_AMOUNT = 'SUM_AMOUNT',       // Sum specific fields (e.g., total stake > 1000)
+  COUNT = 'COUNT', // Count frequency (e.g., place 10 bets)
+  SUM_AMOUNT = 'SUM_AMOUNT', // Sum specific fields (e.g., total stake > 1000)
   SPECIFIC_CONDITION = 'SPECIFIC', // specific conditions from metadata, like 'WIN', 'JACKPOT'
 }
 
@@ -61,6 +61,9 @@ export class Achievement extends BaseEntity {
   @Column('boolean', { default: true })
   isActive: boolean;
 
-  @OneToMany(() => UserAchievement, (userAchievement) => userAchievement.achievement)
+  @OneToMany(
+    () => UserAchievement,
+    (userAchievement) => userAchievement.achievement,
+  )
   userAchievements: UserAchievement[];
 }

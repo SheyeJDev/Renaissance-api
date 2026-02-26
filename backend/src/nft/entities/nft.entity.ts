@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
 export enum RewardType {
@@ -8,7 +17,7 @@ export enum RewardType {
   REFERRAL = 'referral',
   CONTENT_CREATION = 'content_creation',
   COMMUNITY_ENGAGEMENT = 'community_engagement',
-  SPECIAL_ACHIEVEMENT = 'special_achievement'
+  SPECIAL_ACHIEVEMENT = 'special_achievement',
 }
 
 @Entity('nft_player_cards')
@@ -37,7 +46,7 @@ export class NFTPlayerCard {
   @Column({
     type: 'enum',
     enum: RewardType,
-    name: 'reward_type'
+    name: 'reward_type',
   })
   @Index()
   rewardType: RewardType;

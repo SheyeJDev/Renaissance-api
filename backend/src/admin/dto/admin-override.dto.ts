@@ -1,16 +1,19 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsEnum, 
-  IsNumber, 
-  IsUUID, 
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsUUID,
   IsBoolean,
   IsDate,
   ValidateNested,
-  IsPositive
+  IsPositive,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { AdminOverrideAction, OverrideStatus } from '../entities/admin-override-log.entity';
+import {
+  AdminOverrideAction,
+  OverrideStatus,
+} from '../entities/admin-override-log.entity';
 
 // Base DTO for all override actions
 export class BaseOverrideDto {

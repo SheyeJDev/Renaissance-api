@@ -47,7 +47,7 @@ import { AuditModule } from './audit/audit.module';
 import { CircuitBreakerGuard } from './auth/guards/circuit-breaker.guard';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { EventListenerModule } from './common/events/event-listener.module';
-import { NFTModule } from './nft/nft.module';
+// import { NFTModule } from './nft/nft.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { Achievement } from './gamification/entities/achievement.entity';
@@ -116,7 +116,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     ReconciliationModule,
     LoggerModule,
     EventListenerModule,
-    NFTModule,
+    // NFTModule,
     ProgressModule,
     SolvencyModule,
     AuditModule,

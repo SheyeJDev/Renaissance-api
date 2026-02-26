@@ -1,28 +1,22 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  Index,
-} from 'typeorm';
-import { BaseEntity } from '../../common/entities/base.entity';
-import { User } from '../../users/entities/user.entity';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { User } from '../users/entities/user.entity';
 
 export enum TransactionType {
-  DEPOSIT         = 'deposit',
-  WITHDRAWAL      = 'withdrawal',
-  BET_PLACED      = 'bet_placed',
-  BET_WON        = 'bet_won',
-  BET_REFUND      = 'bet_refund',
-  STAKING_REWARD  = 'staking_reward',
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  BET_PLACED = 'bet_placed',
+  BET_WON = 'bet_won',
+  BET_REFUND = 'bet_refund',
+  STAKING_REWARD = 'staking_reward',
   STAKING_PENALTY = 'staking_penalty',
 }
 
 export enum TransactionStatus {
-  PENDING   = 'pending',
+  PENDING = 'pending',
   COMPLETED = 'completed',
-  FAILED    = 'failed',
-  REVERSED  = 'reversed',
+  FAILED = 'failed',
+  REVERSED = 'reversed',
 }
 
 @Entity('transactions')
@@ -41,7 +35,11 @@ export class Transaction extends BaseEntity {
   @Column({ type: 'decimal', precision: 18, scale: 8 })
   amount: number;
 
-  @Column({ type: 'enum', enum: TransactionStatus, default: TransactionStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: TransactionStatus,
+    default: TransactionStatus.PENDING,
+  })
   status: TransactionStatus;
 
   /**
@@ -64,7 +62,7 @@ export class Transaction extends BaseEntity {
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
 
-  @ManyToOne(() => User, (user) => user.transactions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

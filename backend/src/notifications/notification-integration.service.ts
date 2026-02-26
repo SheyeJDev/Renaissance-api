@@ -29,7 +29,9 @@ export class NotificationIntegrationService {
     betType: string,
     odds: number,
   ): Promise<void> {
-    this.logger.log(`Processing bet settlement notification for user ${userId}`);
+    this.logger.log(
+      `Processing bet settlement notification for user ${userId}`,
+    );
 
     try {
       await this.notificationsService.createBetOutcomeNotification(userId, {
@@ -45,7 +47,10 @@ export class NotificationIntegrationService {
       // Check for leaderboard position change after bet settlement
       await this.checkLeaderboardPositionChange(userId, 'netEarnings');
     } catch (error) {
-      this.logger.error(`Failed to create bet outcome notification for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to create bet outcome notification for user ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -76,7 +81,10 @@ export class NotificationIntegrationService {
       // Check for leaderboard position change after spin reward
       await this.checkLeaderboardPositionChange(userId, 'totalWinnings');
     } catch (error) {
-      this.logger.error(`Failed to create spin reward notification for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to create spin reward notification for user ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -90,7 +98,9 @@ export class NotificationIntegrationService {
     rewardAmount: number,
     stakingContract: string,
   ): Promise<void> {
-    this.logger.log(`Processing staking reward notification for user ${userId}`);
+    this.logger.log(
+      `Processing staking reward notification for user ${userId}`,
+    );
 
     try {
       await this.notificationsService.createNotification(
@@ -110,7 +120,10 @@ export class NotificationIntegrationService {
       // Check for leaderboard position change after staking reward
       await this.checkLeaderboardPositionChange(userId, 'totalStakingRewards');
     } catch (error) {
-      this.logger.error(`Failed to create staking reward notification for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to create staking reward notification for user ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -141,7 +154,10 @@ export class NotificationIntegrationService {
         'high',
       );
     } catch (error) {
-      this.logger.error(`Failed to create NFT mint notification for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to create NFT mint notification for user ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -156,29 +172,40 @@ export class NotificationIntegrationService {
     try {
       // This would compare current position with stored previous position
       // For now, we'll simulate a position change notification
-      
+
       // In a real implementation, you would:
       // 1. Get current position from leaderboard service
       // 2. Get previous position from database
       // 3. Compare and notify if position changed significantly
-      
+
       const currentPosition = Math.floor(Math.random() * 100) + 1; // Simulated
-      const previousPosition = currentPosition + Math.floor(Math.random() * 10) - 5; // Simulated
-      
-      if (currentPosition !== previousPosition && Math.abs(currentPosition - previousPosition) >= 5) {
-        const changeType = currentPosition < previousPosition ? 'improved' : 'declined';
-        
-        await this.notificationsService.createLeaderboardPositionChangeNotification(userId, {
-          previousPosition,
-          newPosition: currentPosition,
-          metric,
-          totalUsers: 1000, // Simulated
-          percentile: ((1000 - currentPosition + 1) / 1000) * 100,
-          changeType,
-        });
+      const previousPosition =
+        currentPosition + Math.floor(Math.random() * 10) - 5; // Simulated
+
+      if (
+        currentPosition !== previousPosition &&
+        Math.abs(currentPosition - previousPosition) >= 5
+      ) {
+        const changeType =
+          currentPosition < previousPosition ? 'improved' : 'declined';
+
+        await this.notificationsService.createLeaderboardPositionChangeNotification(
+          userId,
+          {
+            previousPosition,
+            newPosition: currentPosition,
+            metric,
+            totalUsers: 1000, // Simulated
+            percentile: ((1000 - currentPosition + 1) / 1000) * 100,
+            changeType,
+          },
+        );
       }
     } catch (error) {
-      this.logger.error(`Failed to check leaderboard position change for user ${userId}:`, error);
+      this.logger.error(
+        `Failed to check leaderboard position change for user ${userId}:`,
+        error,
+      );
     }
   }
 
@@ -189,7 +216,7 @@ export class NotificationIntegrationService {
   @Cron(CronExpression.EVERY_MINUTE)
   async processBatchNotifications(): Promise<void> {
     this.logger.debug('Processing batch notifications');
-    
+
     try {
       await this.notificationsService.processBatchNotifications();
     } catch (error) {

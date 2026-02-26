@@ -55,7 +55,7 @@ export class AdminRoleController {
   async getUserRoles(@Param('userId', ParseUUIDPipe) userId: string) {
     const roles = await this.permissionService.getUserRoles(userId);
     const permissions = await this.permissionService.getUserPermissions(userId);
-    
+
     return {
       userId,
       roles,
@@ -75,8 +75,10 @@ export class AdminRoleController {
   @ApiOperation({ summary: 'Get current user permissions' })
   async getMyPermissions(@CurrentUser() user: User) {
     const roles = await this.permissionService.getUserRoles(user.id);
-    const permissions = await this.permissionService.getUserPermissions(user.id);
-    
+    const permissions = await this.permissionService.getUserPermissions(
+      user.id,
+    );
+
     return {
       userId: user.id,
       roles,

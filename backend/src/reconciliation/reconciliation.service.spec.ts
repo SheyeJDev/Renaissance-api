@@ -109,10 +109,12 @@ describe('ReconciliationService', () => {
 
   describe('getConfig', () => {
     it('should return default configuration when no env vars set', () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue: any) => defaultValue);
-      
+      mockConfigService.get.mockImplementation(
+        (key: string, defaultValue: any) => defaultValue,
+      );
+
       const config = (service as any).getConfig();
-      
+
       expect(config.toleranceThreshold).toBe(0.00000001);
       expect(config.autoCorrectRoundingDifferences).toBe(true);
       expect(config.autoCorrectionThreshold).toBe(0.000001);
@@ -129,9 +131,9 @@ describe('ReconciliationService', () => {
         .mockImplementationOnce(() => false) // enableLedgerConsistencyCheck
         .mockImplementationOnce(() => '0 0 * * *') // cronSchedule
         .mockImplementationOnce(() => false); // notifyOnCriticalDiscrepancies
-      
+
       const config = (service as any).getConfig();
-      
+
       expect(config.toleranceThreshold).toBe(0.0000001);
       expect(config.autoCorrectRoundingDifferences).toBe(false);
       expect(config.autoCorrectionThreshold).toBe(0.00001);
@@ -147,13 +149,13 @@ describe('ReconciliationService', () => {
         { id: 'user1', email: 'user1@example.com', walletBalance: 100 },
         { id: 'user2', email: 'user2@example.com', walletBalance: 50 },
       ];
-      
+
       mockUserRepository.find.mockResolvedValue(mockUsers);
       (service as any).getOnChainBalances = jest.fn().mockResolvedValue({
-        'user1': 99.99999999, // Within tolerance
-        'user2': 49.5, // Outside tolerance
+        user1: 99.99999999, // Within tolerance
+        user2: 49.5, // Outside tolerance
       });
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: true,
@@ -162,9 +164,9 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
+
       const result = await (service as any).compareBalances(config);
-      
+
       expect(result.discrepancies).toHaveLength(1);
       expect(result.discrepancies[0].userId).toBe('user2');
       expect(result.discrepancies[0].difference).toBe(0.5);
@@ -177,12 +179,12 @@ describe('ReconciliationService', () => {
       const mockUsers = [
         { id: 'user1', email: 'user1@example.com', walletBalance: 100 },
       ];
-      
+
       mockUserRepository.find.mockResolvedValue(mockUsers);
       (service as any).getOnChainBalances = jest.fn().mockResolvedValue({
-        'user1': 99.999999, // Small difference within auto-correction threshold
+        user1: 99.999999, // Small difference within auto-correction threshold
       });
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: true,
@@ -191,9 +193,9 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
+
       const result = await (service as any).compareBalances(config);
-      
+
       expect(result.discrepancies).toHaveLength(1);
       expect(result.discrepancies[0].difference).toBe(0.000001);
       expect(result.discrepancies[0].isWithinTolerance).toBe(false);
@@ -215,7 +217,7 @@ describe('ReconciliationService', () => {
           detectedAt: new Date(),
         },
       ];
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: true,
@@ -224,12 +226,17 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
-      await (service as any).autoCorrectRoundingDifferences(discrepancies, config);
-      
+
+      await (service as any).autoCorrectRoundingDifferences(
+        discrepancies,
+        config,
+      );
+
       expect(discrepancies[0].discrepancyStatus).toBe('resolved');
-      expect(discrepancies[0].resolvedAt).toBeDefined();
-      expect(discrepancies[0].resolutionNotes).toBe('Auto-corrected rounding difference');
+      expect((discrepancies[0] as any).resolvedAt).toBeDefined();
+      expect((discrepancies[0] as any).resolutionNotes).toBe(
+        'Auto-corrected rounding difference',
+      );
     });
 
     it('should not auto-correct when disabled', async () => {
@@ -246,7 +253,7 @@ describe('ReconciliationService', () => {
           detectedAt: new Date(),
         },
       ];
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: false,
@@ -255,11 +262,14 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
-      await (service as any).autoCorrectRoundingDifferences(discrepancies, config);
-      
+
+      await (service as any).autoCorrectRoundingDifferences(
+        discrepancies,
+        config,
+      );
+
       expect(discrepancies[0].discrepancyStatus).toBe('detected');
-      expect(discrepancies[0].resolvedAt).toBeUndefined();
+      expect((discrepancies[0] as any).resolvedAt).toBeUndefined();
     });
   });
 
@@ -271,13 +281,13 @@ describe('ReconciliationService', () => {
         type: ReportType.LEDGER_CONSISTENCY,
         startedAt: new Date(),
       };
-      
+
       mockReportRepository.create.mockReturnValue(mockReport);
       mockReportRepository.save.mockResolvedValue(mockReport);
       mockUserRepository.find.mockResolvedValue([]);
       (service as any).getOnChainBalances = jest.fn().mockResolvedValue({});
       (service as any).autoCorrectRoundingDifferences = jest.fn();
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: true,
@@ -286,9 +296,9 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
+
       const result = await service.runLedgerConsistencyReconciliation(config);
-      
+
       expect(result.status).toBe('completed');
       expect(result.type).toBe(ReportType.LEDGER_CONSISTENCY);
       expect(result.completedAt).toBeDefined();
@@ -299,7 +309,7 @@ describe('ReconciliationService', () => {
       mockReportRepository.create.mockReturnValue({ id: 'test-report' });
       mockReportRepository.save.mockResolvedValue({ id: 'test-report' });
       mockUserRepository.find.mockRejectedValue(new Error('Database error'));
-      
+
       const config = {
         toleranceThreshold: 0.00000001,
         autoCorrectRoundingDifferences: true,
@@ -308,16 +318,16 @@ describe('ReconciliationService', () => {
         cronSchedule: '0 */6 * * *',
         notifyOnCriticalDiscrepancies: true,
       };
-      
-      await expect(service.runLedgerConsistencyReconciliation(config))
-        .rejects
-        .toThrow('Database error');
-      
+
+      await expect(
+        service.runLedgerConsistencyReconciliation(config),
+      ).rejects.toThrow('Database error');
+
       expect(mockReportRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',
           errorMessage: 'Database error',
-        })
+        }),
       );
     });
   });
@@ -325,7 +335,9 @@ describe('ReconciliationService', () => {
   describe('runReconciliation', () => {
     it('should run full reconciliation with ledger consistency', async () => {
       const mockReport = { id: 'test-report', status: 'completed' };
-      (service as any).runExistingChecks = jest.fn().mockResolvedValue(mockReport);
+      (service as any).runExistingChecks = jest
+        .fn()
+        .mockResolvedValue(mockReport);
       service.runLedgerConsistencyReconciliation = jest.fn().mockResolvedValue({
         ledgerMismatchCount: 1,
         onchainDiscrepancyCount: 1,
@@ -342,7 +354,7 @@ describe('ReconciliationService', () => {
         ledgerConsistencyData: {},
         balanceDiscrepancies: [],
       });
-      
+
       const dto = {
         type: ReportType.MANUAL,
         includeLedgerConsistency: true,
@@ -355,9 +367,9 @@ describe('ReconciliationService', () => {
           notifyOnCriticalDiscrepancies: true,
         },
       };
-      
+
       const result = await service.runReconciliation(dto);
-      
+
       expect(result.ledgerMismatchCount).toBe(1);
       expect(result.totalUsersChecked).toBe(10);
       expect(result.usersWithDiscrepancies).toBe(1);
@@ -366,16 +378,18 @@ describe('ReconciliationService', () => {
 
     it('should run reconciliation without ledger consistency when disabled', async () => {
       const mockReport = { id: 'test-report', status: 'completed' };
-      (service as any).runExistingChecks = jest.fn().mockResolvedValue(mockReport);
+      (service as any).runExistingChecks = jest
+        .fn()
+        .mockResolvedValue(mockReport);
       service.runLedgerConsistencyReconciliation = jest.fn();
-      
+
       const dto = {
         type: ReportType.MANUAL,
         includeLedgerConsistency: false,
       };
-      
+
       const result = await service.runReconciliation(dto);
-      
+
       expect(service.runLedgerConsistencyReconciliation).not.toHaveBeenCalled();
       expect(result.id).toBe('test-report');
     });

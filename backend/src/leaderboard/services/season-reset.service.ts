@@ -23,7 +23,7 @@ export class SeasonResetService {
   @Cron(CronExpression.EVERY_HOUR)
   async checkAndResetSeasons(): Promise<void> {
     this.logger.log('Checking for seasons that need to be reset...');
-    
+
     const now = new Date();
     const expiredSeasons = await this.seasonRepo.find({
       where: {
@@ -39,14 +39,14 @@ export class SeasonResetService {
 
   async resetSeason(season: Season): Promise<void> {
     this.logger.log(`Resetting season: ${season.name} (${season.id})`);
-    
+
     try {
       // Calculate final rankings
       await this.seasonalLeaderboardService.calculateRankings(season.id);
-      
+
       // Mark season as completed
       await this.seasonService.completeSeason(season.id);
-      
+
       this.logger.log(`Season ${season.name} has been completed and archived`);
     } catch (error) {
       this.logger.error(`Failed to reset season ${season.id}:`, error);
@@ -57,7 +57,7 @@ export class SeasonResetService {
   async archiveOldSeasons(daysOld: number = 90): Promise<void> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    
+
     const oldSeasons = await this.seasonRepo.find({
       where: {
         status: SeasonStatus.COMPLETED,
@@ -87,7 +87,7 @@ export class SeasonResetService {
       .where('sl.userId = :userId', { userId })
       .orderBy('season.seasonNumber', 'DESC')
       .getRawMany();
-    
+
     return history;
   }
 }

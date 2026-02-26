@@ -1,14 +1,8 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 // import { AnalyticsService } from './analytics.service';
 import { DateRangeDto } from './dto/date-range.dto';
 import { ExportQueryDto } from './dto/export-query.dto';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { Parser } from 'json2csv';
 import { AnalyticsService } from './providers/analytics.service';
 
@@ -36,9 +30,7 @@ export class AnalyticsController {
   }
 
   @Get('spin')
-  async spinRevenue(
-    @Query() dateRange: DateRangeDto,
-  ) {
+  async spinRevenue(@Query() dateRange: DateRangeDto) {
     return this.analyticsService.spinRevenue(dateRange);
   }
 
@@ -48,9 +40,7 @@ export class AnalyticsController {
   }
 
   @Get('bet-settlement')
-  async betStats(
-    @Query() dateRange: DateRangeDto,
-  ) {
+  async betStats(@Query() dateRange: DateRangeDto) {
     return this.analyticsService.betSettlementStats(dateRange);
   }
 }

@@ -8,15 +8,12 @@ import { GamificationController } from './gamification.controller';
 import { GamificationEventHandlers } from './handlers/gamification-event.handler';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Achievement, UserAchievement]),
-        CqrsModule,
-    ],
-    controllers: [GamificationController],
-    providers: [
-        GamificationService,
-        ...GamificationEventHandlers,
-    ],
-    exports: [GamificationService],
+  imports: [
+    TypeOrmModule.forFeature([Achievement, UserAchievement]),
+    CqrsModule,
+  ],
+  controllers: [GamificationController],
+  providers: [GamificationService, ...GamificationEventHandlers],
+  exports: [GamificationService],
 })
-export class GamificationModule { }
+export class GamificationModule {}

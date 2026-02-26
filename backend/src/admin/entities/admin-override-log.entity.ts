@@ -70,61 +70,62 @@ export class AdminOverrideLog extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;
 
-  @Column({ 
-    name: 'executed_at', 
-    type: 'timestamp', 
-    nullable: true 
+  @Column({
+    name: 'executed_at',
+    type: 'timestamp',
+    nullable: true,
   })
   executedAt?: Date;
 
-  @Column({ 
-    name: 'executed_by', 
-    nullable: true 
+  @Column({
+    name: 'executed_by',
+    nullable: true,
   })
   executedBy?: string;
 
-  @Column({ 
-    name: 'requires_onchain_approval', 
-    type: 'boolean', 
+  @Column({
+    name: 'requires_onchain_approval',
+    type: 'boolean',
     default: false,
-    comment: 'Indicates if this override requires special on-chain settlement approval'
+    comment:
+      'Indicates if this override requires special on-chain settlement approval',
   })
   requiresOnChainApproval: boolean;
 
-  @Column({ 
-    name: 'onchain_approved', 
-    type: 'boolean', 
+  @Column({
+    name: 'onchain_approved',
+    type: 'boolean',
     default: false,
-    comment: 'Whether on-chain settlement override has been approved'
+    comment: 'Whether on-chain settlement override has been approved',
   })
   onChainApproved: boolean;
 
-  @Column({ 
-    name: 'onchain_approval_admin_id', 
+  @Column({
+    name: 'onchain_approval_admin_id',
     nullable: true,
-    comment: 'Admin who approved the on-chain override'
+    comment: 'Admin who approved the on-chain override',
   })
   onChainApprovalAdminId?: string;
 
-  @Column({ 
-    name: 'reversal_reason', 
+  @Column({
+    name: 'reversal_reason',
     nullable: true,
-    comment: 'Reason for reversing the override'
+    comment: 'Reason for reversing the override',
   })
   reversalReason?: string;
 
-  @Column({ 
-    name: 'reversed_by', 
+  @Column({
+    name: 'reversed_by',
     nullable: true,
-    comment: 'Admin who reversed the override'
+    comment: 'Admin who reversed the override',
   })
   reversedBy?: string;
 
-  @Column({ 
-    name: 'reversed_at', 
-    type: 'timestamp', 
+  @Column({
+    name: 'reversed_at',
+    type: 'timestamp',
     nullable: true,
-    comment: 'When the override was reversed'
+    comment: 'When the override was reversed',
   })
   reversedAt?: Date;
 

@@ -37,7 +37,7 @@ export class AdminRoleGuard implements CanActivate {
     }
 
     const userRoles = await this.permissionService.getUserRoles(user.id);
-    const hasRole = requiredRoles.some(role => userRoles.includes(role));
+    const hasRole = requiredRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {
       this.logger.warn(

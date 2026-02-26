@@ -1,16 +1,21 @@
-import { 
-  IsEnum, 
-  IsNumber, 
-  IsOptional, 
-  IsString, 
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
   IsUUID,
   IsBoolean,
   IsDate,
   Min,
-  Max
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ReportType, Severity, InconsistencyType, DiscrepancyStatus } from '../entities/reconciliation-report.entity';
+import {
+  ReportType,
+  Severity,
+  InconsistencyType,
+  DiscrepancyStatus,
+} from '../entities/reconciliation-report.entity';
 
 // Configuration DTO
 export class ReconciliationConfigDto {

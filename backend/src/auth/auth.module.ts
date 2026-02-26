@@ -25,7 +25,12 @@ import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
   imports: [
     ConfigModule,
     PassportModule,
-    TypeOrmModule.forFeature([User, RolePermission, AdminRoleEntity, AdminAuditLog]),
+    TypeOrmModule.forFeature([
+      User,
+      RolePermission,
+      AdminRoleEntity,
+      AdminAuditLog,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

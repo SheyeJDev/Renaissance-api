@@ -16,9 +16,15 @@ import {
 import { User } from '../users/entities/user.entity';
 import { Bet, BetStatus } from '../bets/entities/bet.entity';
 import { Match, MatchStatus } from '../matches/entities/match.entity';
-import { Settlement, SettlementStatus } from '../blockchain/entities/settlement.entity';
+import {
+  Settlement,
+  SettlementStatus,
+} from '../blockchain/entities/settlement.entity';
 import { SorobanService } from '../blockchain/soroban.service';
-import { ReconciliationConfigDto, RunReconciliationDto } from './dto/reconciliation.dto';
+import {
+  ReconciliationConfigDto,
+  RunReconciliationDto,
+} from './dto/reconciliation.dto';
 
 export interface PaginatedReports {
   data: ReconciliationReport[];
@@ -61,12 +67,30 @@ export class ReconciliationService {
    */
   private getConfig(): ReconciliationConfigDto {
     return {
-      toleranceThreshold: this.configService.get<number>('reconciliation.toleranceThreshold', 0.00000001),
-      autoCorrectRoundingDifferences: this.configService.get<boolean>('reconciliation.autoCorrectRoundingDifferences', true),
-      autoCorrectionThreshold: this.configService.get<number>('reconciliation.autoCorrectionThreshold', 0.000001),
-      enableLedgerConsistencyCheck: this.configService.get<boolean>('reconciliation.enableLedgerConsistencyCheck', true),
-      cronSchedule: this.configService.get<string>('reconciliation.cronSchedule', '0 */6 * * *'),
-      notifyOnCriticalDiscrepancies: this.configService.get<boolean>('reconciliation.notifyOnCriticalDiscrepancies', true),
+      toleranceThreshold: this.configService.get<number>(
+        'reconciliation.toleranceThreshold',
+        0.00000001,
+      ),
+      autoCorrectRoundingDifferences: this.configService.get<boolean>(
+        'reconciliation.autoCorrectRoundingDifferences',
+        true,
+      ),
+      autoCorrectionThreshold: this.configService.get<number>(
+        'reconciliation.autoCorrectionThreshold',
+        0.000001,
+      ),
+      enableLedgerConsistencyCheck: this.configService.get<boolean>(
+        'reconciliation.enableLedgerConsistencyCheck',
+        true,
+      ),
+      cronSchedule: this.configService.get<string>(
+        'reconciliation.cronSchedule',
+        '0 */6 * * *',
+      ),
+      notifyOnCriticalDiscrepancies: this.configService.get<boolean>(
+        'reconciliation.notifyOnCriticalDiscrepancies',
+        true,
+      ),
     };
   }
 
@@ -81,15 +105,15 @@ export class ReconciliationService {
       // 1. Call balance_ledger.get_total() for each user
       // 2. Parse the returned XDR values
       // 3. Convert to decimal representation
-      
+
       this.logger.log('Fetching on-chain balances from Soroban contracts...');
-      
+
       // Mock implementation - in real scenario this would call:
       // await this.sorobanService.invokeContract('get_total', [userAddress])
-      
+
       const users = await this.userRepository.find();
       const onChainBalances: Record<string, number> = {};
-      
+
       // Simulate fetching from blockchain
       for (const user of users) {
         // In real implementation, this would be:
@@ -97,7 +121,7 @@ export class ReconciliationService {
         // onChainBalances[user.id] = this.convertXdrToDecimal(balance);
         onChainBalances[user.id] = user.walletBalance; // Mock - using backend balance
       }
-      
+
       this.logger.log(`Retrieved on-chain balances for ${users.length} users`);
       return onChainBalances;
     } catch (error) {
@@ -109,29 +133,27 @@ export class ReconciliationService {
   /**
    * Compare on-chain and backend balances
    */
-  private async compareBalances(
-    config: ReconciliationConfigDto
-  ): Promise<{ 
-    discrepancies: BalanceDiscrepancy[]; 
-    report: LedgerConsistencyReport 
+  private async compareBalances(config: ReconciliationConfigDto): Promise<{
+    discrepancies: BalanceDiscrepancy[];
+    report: LedgerConsistencyReport;
   }> {
     this.logger.log('Comparing on-chain and backend balances...');
-    
+
     const onChainBalances = await this.getOnChainBalances();
     const users = await this.userRepository.find();
-    
+
     const discrepancies: BalanceDiscrepancy[] = [];
     let totalDiscrepancyAmount = 0;
     let discrepancyCount = 0;
     let withinToleranceCount = 0;
-    
+
     const discrepanciesBySeverity: Record<Severity, number> = {
       [Severity.LOW]: 0,
       [Severity.MEDIUM]: 0,
       [Severity.HIGH]: 0,
       [Severity.CRITICAL]: 0,
     };
-    
+
     const discrepanciesByType: Record<InconsistencyType, number> = {
       [InconsistencyType.NEGATIVE_BALANCE]: 0,
       [InconsistencyType.ORPHANED_BET]: 0,
@@ -142,23 +164,24 @@ export class ReconciliationService {
       [InconsistencyType.OFFCHAIN_BALANCE_DISCREPANCY]: 0,
       [InconsistencyType.ROUNDING_DIFFERENCE]: 0,
     };
-    
+
     for (const user of users) {
       const backendBalance = user.walletBalance;
       const onchainBalance = onChainBalances[user.id] || 0;
       const difference = Math.abs(backendBalance - onchainBalance);
-      
+
       const isWithinTolerance = difference <= config.toleranceThreshold;
-      const isRoundingDifference = difference <= config.autoCorrectionThreshold && 
-                                  config.autoCorrectRoundingDifferences;
-      
+      const isRoundingDifference =
+        difference <= config.autoCorrectionThreshold &&
+        config.autoCorrectRoundingDifferences;
+
       if (!isWithinTolerance) {
         discrepancyCount++;
         totalDiscrepancyAmount += difference;
-        
+
         let severity = Severity.LOW;
         let discrepancyType = InconsistencyType.LEDGER_MISMATCH;
-        
+
         if (isRoundingDifference) {
           severity = Severity.LOW;
           discrepancyType = InconsistencyType.ROUNDING_DIFFERENCE;
@@ -172,9 +195,9 @@ export class ReconciliationService {
           discrepancyType = InconsistencyType.LEDGER_MISMATCH;
           discrepanciesByType[InconsistencyType.LEDGER_MISMATCH]++;
         }
-        
+
         discrepanciesBySeverity[severity]++;
-        
+
         discrepancies.push({
           userId: user.id,
           userEmail: user.email,
@@ -190,13 +213,18 @@ export class ReconciliationService {
         withinToleranceCount++;
       }
     }
-    
-    const averageDiscrepancy = discrepancyCount > 0 ? totalDiscrepancyAmount / discrepancyCount : 0;
-    const maxDiscrepancy = discrepancies.length > 0 ? 
-      Math.max(...discrepancies.map(d => d.difference)) : 0;
-    const minDiscrepancy = discrepancies.length > 0 ? 
-      Math.min(...discrepancies.map(d => d.difference)) : 0;
-    
+
+    const averageDiscrepancy =
+      discrepancyCount > 0 ? totalDiscrepancyAmount / discrepancyCount : 0;
+    const maxDiscrepancy =
+      discrepancies.length > 0
+        ? Math.max(...discrepancies.map((d) => d.difference))
+        : 0;
+    const minDiscrepancy =
+      discrepancies.length > 0
+        ? Math.min(...discrepancies.map((d) => d.difference))
+        : 0;
+
     const report: LedgerConsistencyReport = {
       totalUsersChecked: users.length,
       usersWithDiscrepancies: discrepancyCount,
@@ -209,8 +237,10 @@ export class ReconciliationService {
       discrepanciesByType,
       balanceDiscrepancies: discrepancies,
     };
-    
-    this.logger.log(`Balance comparison complete. ${discrepancyCount} discrepancies found.`);
+
+    this.logger.log(
+      `Balance comparison complete. ${discrepancyCount} discrepancies found.`,
+    );
     return { discrepancies, report };
   }
 
@@ -219,31 +249,36 @@ export class ReconciliationService {
    */
   private async autoCorrectRoundingDifferences(
     discrepancies: BalanceDiscrepancy[],
-    config: ReconciliationConfigDto
+    config: ReconciliationConfigDto,
   ): Promise<void> {
     if (!config.autoCorrectRoundingDifferences) {
       return;
     }
-    
+
     const roundingDiscrepancies = discrepancies.filter(
-      d => d.difference <= config.autoCorrectionThreshold && 
-           d.difference > config.toleranceThreshold
+      (d) =>
+        d.difference <= config.autoCorrectionThreshold &&
+        d.difference > config.toleranceThreshold,
     );
-    
+
     if (roundingDiscrepancies.length === 0) {
       return;
     }
-    
-    this.logger.log(`Auto-correcting ${roundingDiscrepancies.length} rounding discrepancies...`);
-    
+
+    this.logger.log(
+      `Auto-correcting ${roundingDiscrepancies.length} rounding discrepancies...`,
+    );
+
     // In a real implementation, this would:
     // 1. Create admin override records
     // 2. Update backend balances
     // 3. Log the corrections
     // 4. Potentially trigger on-chain adjustments
-    
+
     for (const discrepancy of roundingDiscrepancies) {
-      this.logger.log(`Auto-corrected rounding difference for user ${discrepancy.userEmail}: ${discrepancy.difference}`);
+      this.logger.log(
+        `Auto-corrected rounding difference for user ${discrepancy.userEmail}: ${discrepancy.difference}`,
+      );
       // Update discrepancy status
       discrepancy.discrepancyStatus = DiscrepancyStatus.RESOLVED;
       discrepancy.resolvedAt = new Date();
@@ -255,10 +290,10 @@ export class ReconciliationService {
    * Run ledger consistency reconciliation
    */
   async runLedgerConsistencyReconciliation(
-    config: ReconciliationConfigDto = this.getConfig()
+    config: ReconciliationConfigDto = this.getConfig(),
   ): Promise<ReconciliationReport> {
     this.logger.log('Starting ledger consistency reconciliation...');
-    
+
     // Create report record
     const report = this.reportRepository.create({
       status: ReportStatus.RUNNING,
@@ -286,16 +321,17 @@ export class ReconciliationService {
       ledgerConsistencyData: null,
       balanceDiscrepancies: null,
     });
-    
+
     await this.reportRepository.save(report);
-    
+
     try {
       // Compare balances
-      const { discrepancies, report: consistencyReport } = await this.compareBalances(config);
-      
+      const { discrepancies, report: consistencyReport } =
+        await this.compareBalances(config);
+
       // Auto-correct rounding differences
       await this.autoCorrectRoundingDifferences(discrepancies, config);
-      
+
       // Update report with results
       report.status = ReportStatus.COMPLETED;
       report.completedAt = new Date();
@@ -308,40 +344,66 @@ export class ReconciliationService {
       report.minDiscrepancy = consistencyReport.minDiscrepancy;
       report.ledgerConsistencyData = consistencyReport;
       report.balanceDiscrepancies = discrepancies;
-      report.ledgerMismatchCount = consistencyReport.discrepanciesByType[InconsistencyType.LEDGER_MISMATCH];
-      report.onchainDiscrepancyCount = consistencyReport.discrepanciesByType[InconsistencyType.ONCHAIN_BALANCE_DISCREPANCY];
-      report.offchainDiscrepancyCount = consistencyReport.discrepanciesByType[InconsistencyType.OFFCHAIN_BALANCE_DISCREPANCY];
-      report.roundingDifferenceCount = consistencyReport.discrepanciesByType[InconsistencyType.ROUNDING_DIFFERENCE];
+      report.ledgerMismatchCount =
+        consistencyReport.discrepanciesByType[
+          InconsistencyType.LEDGER_MISMATCH
+        ];
+      report.onchainDiscrepancyCount =
+        consistencyReport.discrepanciesByType[
+          InconsistencyType.ONCHAIN_BALANCE_DISCREPANCY
+        ];
+      report.offchainDiscrepancyCount =
+        consistencyReport.discrepanciesByType[
+          InconsistencyType.OFFCHAIN_BALANCE_DISCREPANCY
+        ];
+      report.roundingDifferenceCount =
+        consistencyReport.discrepanciesByType[
+          InconsistencyType.ROUNDING_DIFFERENCE
+        ];
       report.totalInconsistencies = discrepancies.length;
-      
+
       await this.reportRepository.save(report);
-      
+
       // Log summary
       this.logger.log(`Ledger consistency reconciliation completed.`);
-      this.logger.log(`  Total users checked: ${consistencyReport.totalUsersChecked}`);
-      this.logger.log(`  Users with discrepancies: ${consistencyReport.usersWithDiscrepancies}`);
-      this.logger.log(`  Users within tolerance: ${consistencyReport.usersWithinTolerance}`);
-      this.logger.log(`  Total discrepancy amount: ${consistencyReport.totalDiscrepancyAmount}`);
-      
+      this.logger.log(
+        `  Total users checked: ${consistencyReport.totalUsersChecked}`,
+      );
+      this.logger.log(
+        `  Users with discrepancies: ${consistencyReport.usersWithDiscrepancies}`,
+      );
+      this.logger.log(
+        `  Users within tolerance: ${consistencyReport.usersWithinTolerance}`,
+      );
+      this.logger.log(
+        `  Total discrepancy amount: ${consistencyReport.totalDiscrepancyAmount}`,
+      );
+
       // Alert on critical issues
       const criticalDiscrepancies = discrepancies.filter(
-        d => d.difference > config.autoCorrectionThreshold
+        (d) => d.difference > config.autoCorrectionThreshold,
       );
-      
-      if (criticalDiscrepancies.length > 0 && config.notifyOnCriticalDiscrepancies) {
+
+      if (
+        criticalDiscrepancies.length > 0 &&
+        config.notifyOnCriticalDiscrepancies
+      ) {
         this.logger.error(
-          `CRITICAL: ${criticalDiscrepancies.length} balance discrepancies exceed auto-correction threshold!`
+          `CRITICAL: ${criticalDiscrepancies.length} balance discrepancies exceed auto-correction threshold!`,
         );
       }
-      
+
       return report;
     } catch (error) {
       report.status = ReportStatus.FAILED;
       report.completedAt = new Date();
-      report.errorMessage = error instanceof Error ? error.message : String(error);
+      report.errorMessage =
+        error instanceof Error ? error.message : String(error);
       await this.reportRepository.save(report);
-      
-      this.logger.error(`Ledger consistency reconciliation failed: ${report.errorMessage}`);
+
+      this.logger.error(
+        `Ledger consistency reconciliation failed: ${report.errorMessage}`,
+      );
       throw error;
     }
   }
@@ -350,48 +412,59 @@ export class ReconciliationService {
    * Run full reconciliation including ledger consistency
    */
   async runReconciliation(
-    dto: RunReconciliationDto = { type: ReportType.MANUAL, includeLedgerConsistency: true }
+    dto: RunReconciliationDto = {
+      type: ReportType.MANUAL,
+      includeLedgerConsistency: true,
+    },
   ): Promise<ReconciliationReport> {
     this.logger.log(`Starting ${dto.type} reconciliation...`);
-    
+
     const config = dto.config || this.getConfig();
-    
+
     // Run existing reconciliation checks
     const existingReport = await this.runExistingChecks(dto.type);
-    
+
     // Run ledger consistency check if enabled
     if (dto.includeLedgerConsistency && config.enableLedgerConsistencyCheck) {
-      const ledgerReport = await this.runLedgerConsistencyReconciliation(config);
-      
+      const ledgerReport =
+        await this.runLedgerConsistencyReconciliation(config);
+
       // Merge results
       existingReport.ledgerMismatchCount = ledgerReport.ledgerMismatchCount;
-      existingReport.onchainDiscrepancyCount = ledgerReport.onchainDiscrepancyCount;
-      existingReport.offchainDiscrepancyCount = ledgerReport.offchainDiscrepancyCount;
-      existingReport.roundingDifferenceCount = ledgerReport.roundingDifferenceCount;
+      existingReport.onchainDiscrepancyCount =
+        ledgerReport.onchainDiscrepancyCount;
+      existingReport.offchainDiscrepancyCount =
+        ledgerReport.offchainDiscrepancyCount;
+      existingReport.roundingDifferenceCount =
+        ledgerReport.roundingDifferenceCount;
       existingReport.totalInconsistencies += ledgerReport.totalInconsistencies;
       existingReport.totalUsersChecked = ledgerReport.totalUsersChecked;
-      existingReport.usersWithDiscrepancies = ledgerReport.usersWithDiscrepancies;
+      existingReport.usersWithDiscrepancies =
+        ledgerReport.usersWithDiscrepancies;
       existingReport.usersWithinTolerance = ledgerReport.usersWithinTolerance;
-      existingReport.totalDiscrepancyAmount = ledgerReport.totalDiscrepancyAmount;
+      existingReport.totalDiscrepancyAmount =
+        ledgerReport.totalDiscrepancyAmount;
       existingReport.averageDiscrepancy = ledgerReport.averageDiscrepancy;
       existingReport.maxDiscrepancy = ledgerReport.maxDiscrepancy;
       existingReport.minDiscrepancy = ledgerReport.minDiscrepancy;
       existingReport.ledgerConsistencyData = ledgerReport.ledgerConsistencyData;
       existingReport.balanceDiscrepancies = ledgerReport.balanceDiscrepancies;
-      
+
       await this.reportRepository.save(existingReport);
     }
-    
+
     return existingReport;
   }
 
   /**
    * Run existing reconciliation checks (negative balances, orphaned bets, etc.)
    */
-  private async runExistingChecks(type: ReportType): Promise<ReconciliationReport> {
+  private async runExistingChecks(
+    type: ReportType,
+  ): Promise<ReconciliationReport> {
     // This would call the existing methods from the original reconciliation service
     // For brevity, I'll create a simplified version
-    
+
     const report = this.reportRepository.create({
       status: ReportStatus.RUNNING,
       type,
@@ -407,15 +480,15 @@ export class ReconciliationService {
       totalInconsistencies: 0,
       inconsistencies: [],
     });
-    
+
     await this.reportRepository.save(report);
-    
+
     // Simulate running checks
     // In real implementation, this would call the existing detection methods
     report.status = ReportStatus.COMPLETED;
     report.completedAt = new Date();
     await this.reportRepository.save(report);
-    
+
     return report;
   }
 

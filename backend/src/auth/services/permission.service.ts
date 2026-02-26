@@ -21,13 +21,13 @@ export class PermissionService {
 
   private async initializeDefaultPermissions(): Promise<void> {
     const defaultPermissions = this.getDefaultPermissions();
-    
+
     for (const [role, permissions] of Object.entries(defaultPermissions)) {
       for (const permission of permissions) {
         const exists = await this.rolePermissionRepo.findOne({
           where: { role: role as AdminRole, permission },
         });
-        
+
         if (!exists) {
           await this.rolePermissionRepo.save({
             role: role as AdminRole,
@@ -36,14 +36,14 @@ export class PermissionService {
         }
       }
     }
-    
+
     await this.loadPermissionsToCache();
   }
 
   private getDefaultPermissions(): Record<AdminRole, Permission[]> {
     return {
       [AdminRole.SUPER_ADMIN]: Object.values(Permission),
-      
+
       [AdminRole.FINANCIAL_ADMIN]: [
         Permission.VIEW_TRANSACTIONS,
         Permission.PROCESS_WITHDRAWALS,
@@ -53,7 +53,7 @@ export class PermissionService {
         Permission.EXPORT_DATA,
         Permission.VIEW_AUDIT_LOGS,
       ],
-      
+
       [AdminRole.RISK_ADMIN]: [
         Permission.VIEW_RISK_METRICS,
         Permission.SET_BET_LIMITS,
@@ -64,7 +64,7 @@ export class PermissionService {
         Permission.VIEW_USERS,
         Permission.SUSPEND_USERS,
       ],
-      
+
       [AdminRole.SUPPORT_ADMIN]: [
         Permission.VIEW_SUPPORT_TICKETS,
         Permission.RESPOND_TO_TICKETS,
@@ -79,16 +79,18 @@ export class PermissionService {
 
   private async loadPermissionsToCache(): Promise<void> {
     const allPermissions = await this.rolePermissionRepo.find();
-    
+
     this.permissionCache.clear();
-    
+
     for (const rolePermission of allPermissions) {
       if (!this.permissionCache.has(rolePermission.role)) {
         this.permissionCache.set(rolePermission.role, new Set());
       }
-      this.permissionCache.get(rolePermission.role)!.add(rolePermission.permission);
+      this.permissionCache
+        .get(rolePermission.role)!
+        .add(rolePermission.permission);
     }
-    
+
     this.logger.log('Permission cache loaded');
   }
 
@@ -96,47 +98,56 @@ export class PermissionService {
     const userRoles = await this.adminRoleRepo.find({
       where: { userId, active: true },
     });
-    
+
     const permissions = new Set<Permission>();
-    
+
     for (const userRole of userRoles) {
       // Check if role is expired
       if (userRole.expiresAt && new Date() > userRole.expiresAt) {
         continue;
       }
-      
+
       const rolePermissions = this.permissionCache.get(userRole.role);
       if (rolePermissions) {
-        rolePermissions.forEach(p => permissions.add(p));
+        rolePermissions.forEach((p) => permissions.add(p));
       }
     }
-    
+
     return permissions;
   }
 
-  async hasPermission(userId: string, permission: Permission): Promise<boolean> {
+  async hasPermission(
+    userId: string,
+    permission: Permission,
+  ): Promise<boolean> {
     const permissions = await this.getUserPermissions(userId);
     return permissions.has(permission);
   }
 
-  async hasAnyPermission(userId: string, permissions: Permission[]): Promise<boolean> {
+  async hasAnyPermission(
+    userId: string,
+    permissions: Permission[],
+  ): Promise<boolean> {
     const userPermissions = await this.getUserPermissions(userId);
-    return permissions.some(p => userPermissions.has(p));
+    return permissions.some((p) => userPermissions.has(p));
   }
 
-  async hasAllPermissions(userId: string, permissions: Permission[]): Promise<boolean> {
+  async hasAllPermissions(
+    userId: string,
+    permissions: Permission[],
+  ): Promise<boolean> {
     const userPermissions = await this.getUserPermissions(userId);
-    return permissions.every(p => userPermissions.has(p));
+    return permissions.every((p) => userPermissions.has(p));
   }
 
   async getUserRoles(userId: string): Promise<AdminRole[]> {
     const userRoles = await this.adminRoleRepo.find({
       where: { userId, active: true },
     });
-    
+
     return userRoles
-      .filter(ur => !ur.expiresAt || new Date() <= ur.expiresAt)
-      .map(ur => ur.role);
+      .filter((ur) => !ur.expiresAt || new Date() <= ur.expiresAt)
+      .map((ur) => ur.role);
   }
 
   async assignRole(
@@ -149,16 +160,16 @@ export class PermissionService {
     const existing = await this.adminRoleRepo.findOne({
       where: { userId, role },
     });
-    
+
     if (existing) {
       existing.active = true;
       existing.assignedBy = assignedBy;
       existing.assignedAt = new Date();
-      existing.expiresAt = expiresAt || null;
+      existing.expiresAt = expiresAt as any;
       existing.notes = notes || existing.notes;
       return this.adminRoleRepo.save(existing);
     }
-    
+
     const adminRole = this.adminRoleRepo.create({
       userId,
       role,
@@ -167,15 +178,12 @@ export class PermissionService {
       notes,
       active: true,
     });
-    
+
     return this.adminRoleRepo.save(adminRole);
   }
 
   async revokeRole(userId: string, role: AdminRole): Promise<void> {
-    await this.adminRoleRepo.update(
-      { userId, role },
-      { active: false },
-    );
+    await this.adminRoleRepo.update({ userId, role }, { active: false });
   }
 
   async getRolePermissions(role: AdminRole): Promise<Permission[]> {
@@ -183,18 +191,24 @@ export class PermissionService {
     return permissions ? Array.from(permissions) : [];
   }
 
-  async addPermissionToRole(role: AdminRole, permission: Permission): Promise<void> {
+  async addPermissionToRole(
+    role: AdminRole,
+    permission: Permission,
+  ): Promise<void> {
     const exists = await this.rolePermissionRepo.findOne({
       where: { role, permission },
     });
-    
+
     if (!exists) {
       await this.rolePermissionRepo.save({ role, permission });
       await this.loadPermissionsToCache();
     }
   }
 
-  async removePermissionFromRole(role: AdminRole, permission: Permission): Promise<void> {
+  async removePermissionFromRole(
+    role: AdminRole,
+    permission: Permission,
+  ): Promise<void> {
     await this.rolePermissionRepo.delete({ role, permission });
     await this.loadPermissionsToCache();
   }

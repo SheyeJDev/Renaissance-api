@@ -2,17 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { AdminOverrideService } from './admin-override.service';
-import { AdminOverrideLog, AdminOverrideAction, OverrideStatus } from './entities/admin-override-log.entity';
+import {
+  AdminOverrideLog,
+  AdminOverrideAction,
+  OverrideStatus,
+} from './entities/admin-override-log.entity';
 import { User } from '../users/entities/user.entity';
 import { Bet } from '../bets/entities/bet.entity';
 import { Transaction } from '../transactions/entities/transaction.entity';
 import { FreeBetVoucher } from '../free-bet-vouchers/entities/free-bet-voucher.entity';
 import { Spin } from '../spin/entities/spin.entity';
-import { 
-  BalanceAdjustmentDto, 
-  BetOutcomeCorrectionDto, 
-  FreeBetVoucherIssuanceDto, 
-  SpinRewardReversalDto
+import {
+  BalanceAdjustmentDto,
+  BetOutcomeCorrectionDto,
+  FreeBetVoucherIssuanceDto,
+  SpinRewardReversalDto,
 } from './dto/admin-override.dto';
 
 describe('AdminOverrideService', () => {
@@ -82,7 +86,9 @@ describe('AdminOverrideService', () => {
 
     service = module.get<AdminOverrideService>(AdminOverrideService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    overrideLogRepository = module.get<Repository<AdminOverrideLog>>(getRepositoryToken(AdminOverrideLog));
+    overrideLogRepository = module.get<Repository<AdminOverrideLog>>(
+      getRepositoryToken(AdminOverrideLog),
+    );
     dataSource = module.get<DataSource>(DataSource);
   });
 
@@ -106,8 +112,12 @@ describe('AdminOverrideService', () => {
 
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(mockUser);
-      (overrideLogRepository.create as jest.Mock).mockReturnValue(mockOverrideLog);
-      (queryRunner.manager.save as jest.Mock).mockResolvedValue(mockOverrideLog);
+      (overrideLogRepository.create as jest.Mock).mockReturnValue(
+        mockOverrideLog,
+      );
+      (queryRunner.manager.save as jest.Mock).mockResolvedValue(
+        mockOverrideLog,
+      );
 
       const result = await service.adjustUserBalance(userId, adminId, dto);
 
@@ -149,9 +159,9 @@ describe('AdminOverrideService', () => {
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.adjustUserBalance(userId, adminId, dto))
-        .rejects
-        .toThrow('User with ID nonexistent-user not found');
+      await expect(
+        service.adjustUserBalance(userId, adminId, dto),
+      ).rejects.toThrow('User with ID nonexistent-user not found');
     });
 
     it('should throw BadRequestException when adjustment results in negative balance', async () => {
@@ -167,9 +177,9 @@ describe('AdminOverrideService', () => {
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(mockUser);
 
-      await expect(service.adjustUserBalance(userId, adminId, dto))
-        .rejects
-        .toThrow('Balance adjustment would result in negative balance');
+      await expect(
+        service.adjustUserBalance(userId, adminId, dto),
+      ).rejects.toThrow('Balance adjustment would result in negative balance');
     });
   });
 
@@ -194,13 +204,19 @@ describe('AdminOverrideService', () => {
       const mockOverrideLog = { id: 'override-123' };
 
       const queryRunner = dataSource.createQueryRunner();
-      (queryRunner.manager.findOne as jest.Mock).mockImplementation((entity, options) => {
-        if (entity === Bet) return Promise.resolve(mockBet);
-        if (entity === User) return Promise.resolve(mockBet.user);
-        return Promise.resolve(null);
-      });
-      (overrideLogRepository.create as jest.Mock).mockReturnValue(mockOverrideLog);
-      (queryRunner.manager.save as jest.Mock).mockResolvedValue(mockOverrideLog);
+      (queryRunner.manager.findOne as jest.Mock).mockImplementation(
+        (entity, options) => {
+          if (entity === Bet) return Promise.resolve(mockBet);
+          if (entity === User) return Promise.resolve(mockBet.user);
+          return Promise.resolve(null);
+        },
+      );
+      (overrideLogRepository.create as jest.Mock).mockReturnValue(
+        mockOverrideLog,
+      );
+      (queryRunner.manager.save as jest.Mock).mockResolvedValue(
+        mockOverrideLog,
+      );
 
       const result = await service.correctBetOutcome(adminId, dto);
 
@@ -232,7 +248,9 @@ describe('AdminOverrideService', () => {
 
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(mockBet);
-      (overrideLogRepository.create as jest.Mock).mockReturnValue(mockOverrideLog);
+      (overrideLogRepository.create as jest.Mock).mockReturnValue(
+        mockOverrideLog,
+      );
 
       const result = await service.correctBetOutcome(adminId, dto);
 
@@ -241,7 +259,7 @@ describe('AdminOverrideService', () => {
         expect.objectContaining({
           status: OverrideStatus.PENDING,
           requiresOnChainApproval: true,
-        })
+        }),
       );
     });
   });
@@ -252,7 +270,7 @@ describe('AdminOverrideService', () => {
       const adminId = 'admin-456';
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 30);
-      
+
       const dto: FreeBetVoucherIssuanceDto = {
         reason: 'Test voucher',
         amount: 50,
@@ -266,11 +284,14 @@ describe('AdminOverrideService', () => {
 
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(mockUser);
-      (queryRunner.manager.save as jest.Mock).mockImplementation((entity, data) => {
-        if (entity === FreeBetVoucher) return Promise.resolve(mockVoucher);
-        if (entity === AdminOverrideLog) return Promise.resolve(mockOverrideLog);
-        return Promise.resolve(data);
-      });
+      (queryRunner.manager.save as jest.Mock).mockImplementation(
+        (entity, data) => {
+          if (entity === FreeBetVoucher) return Promise.resolve(mockVoucher);
+          if (entity === AdminOverrideLog)
+            return Promise.resolve(mockOverrideLog);
+          return Promise.resolve(data);
+        },
+      );
 
       const result = await service.issueFreeBetVoucher(userId, adminId, dto);
 
@@ -292,7 +313,7 @@ describe('AdminOverrideService', () => {
       const adminId = 'admin-456';
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 1);
-      
+
       const dto: FreeBetVoucherIssuanceDto = {
         reason: 'Test voucher',
         amount: 50,
@@ -300,11 +321,13 @@ describe('AdminOverrideService', () => {
       };
 
       const queryRunner = dataSource.createQueryRunner();
-      (queryRunner.manager.findOne as jest.Mock).mockResolvedValue({ id: userId });
+      (queryRunner.manager.findOne as jest.Mock).mockResolvedValue({
+        id: userId,
+      });
 
-      await expect(service.issueFreeBetVoucher(userId, adminId, dto))
-        .rejects
-        .toThrow('Expiration date must be in the future');
+      await expect(
+        service.issueFreeBetVoucher(userId, adminId, dto),
+      ).rejects.toThrow('Expiration date must be in the future');
     });
   });
 
@@ -327,12 +350,16 @@ describe('AdminOverrideService', () => {
       const mockOverrideLog = { id: 'override-123' };
 
       const queryRunner = dataSource.createQueryRunner();
-      (queryRunner.manager.findOne as jest.Mock).mockImplementation((entity, options) => {
-        if (entity === Spin) return Promise.resolve(mockSpin);
-        if (entity === User) return Promise.resolve(mockSpin.user);
-        return Promise.resolve(null);
-      });
-      (overrideLogRepository.create as jest.Mock).mockReturnValue(mockOverrideLog);
+      (queryRunner.manager.findOne as jest.Mock).mockImplementation(
+        (entity, options) => {
+          if (entity === Spin) return Promise.resolve(mockSpin);
+          if (entity === User) return Promise.resolve(mockSpin.user);
+          return Promise.resolve(null);
+        },
+      );
+      (overrideLogRepository.create as jest.Mock).mockReturnValue(
+        mockOverrideLog,
+      );
 
       const result = await service.reverseSpinReward(adminId, dto);
 
@@ -364,9 +391,9 @@ describe('AdminOverrideService', () => {
       const queryRunner = dataSource.createQueryRunner();
       (queryRunner.manager.findOne as jest.Mock).mockResolvedValue(mockSpin);
 
-      await expect(service.reverseSpinReward(adminId, dto))
-        .rejects
-        .toThrow('Cannot reverse spin reward after on-chain settlement');
+      await expect(service.reverseSpinReward(adminId, dto)).rejects.toThrow(
+        'Cannot reverse spin reward after on-chain settlement',
+      );
     });
   });
 
@@ -394,7 +421,9 @@ describe('AdminOverrideService', () => {
         getMany: jest.fn().mockResolvedValue(mockLogs),
       };
 
-      (overrideLogRepository.createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+      (overrideLogRepository.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder,
+      );
 
       const result = await service.getOverrideLogs(query);
 
@@ -402,7 +431,7 @@ describe('AdminOverrideService', () => {
       expect(result.total).toEqual(mockTotal);
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'override.actionType = :actionType',
-        { actionType: AdminOverrideAction.BALANCE_ADJUSTMENT }
+        { actionType: AdminOverrideAction.BALANCE_ADJUSTMENT },
       );
     });
   });
@@ -413,17 +442,19 @@ describe('AdminOverrideService', () => {
 
       // Using reflection to test private method
       const validateMethod = service['validateAdminPermissions'];
-      
-      await expect(validateMethod('nonexistent-admin'))
-        .rejects
-        .toThrow('Admin user not found');
+
+      await expect(validateMethod('nonexistent-admin')).rejects.toThrow(
+        'Admin user not found',
+      );
     });
 
     it('should not throw when admin exists', async () => {
-      (userRepository.findOne as jest.Mock).mockResolvedValue({ id: 'admin-123' });
+      (userRepository.findOne as jest.Mock).mockResolvedValue({
+        id: 'admin-123',
+      });
 
       const validateMethod = service['validateAdminPermissions'];
-      
+
       await expect(validateMethod('admin-123')).resolves.not.toThrow();
     });
   });

@@ -11,14 +11,18 @@ describe('SettlementService', () => {
 
   beforeEach(async () => {
     repoMock = {
-        findOne: jest.fn(),
-        create: jest.fn().mockImplementation((dto) => dto),
-        save: jest.fn().mockImplementation((entity) => Promise.resolve({ ...entity, id: 'uuid' })),
-        find: jest.fn(),
+      findOne: jest.fn(),
+      create: jest.fn().mockImplementation((dto) => dto),
+      save: jest
+        .fn()
+        .mockImplementation((entity) =>
+          Promise.resolve({ ...entity, id: 'uuid' }),
+        ),
+      find: jest.fn(),
     };
 
     const sorobanMock = {
-        invokeContract: jest.fn().mockResolvedValue('mock_tx_hash'),
+      invokeContract: jest.fn().mockResolvedValue('mock_tx_hash'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -29,8 +33,8 @@ describe('SettlementService', () => {
           useValue: sorobanMock,
         },
         {
-            provide: getRepositoryToken(Settlement),
-            useValue: repoMock,
+          provide: getRepositoryToken(Settlement),
+          useValue: repoMock,
         },
       ],
     }).compile();
@@ -44,33 +48,39 @@ describe('SettlementService', () => {
   });
 
   it('should settle a bet correctly', async () => {
-      await service.settleBet('bet123', 'WIN', 100);
-      
-      expect(repoMock.findOne).toHaveBeenCalledWith({ where: { referenceId: 'settle_bet123' } });
-      expect(repoMock.create).toHaveBeenCalled();
-      expect(sorobanService.invokeContract).toHaveBeenCalledWith('settle', ['bet123', 'WIN', '100']);
-      expect(repoMock.save).toHaveBeenCalledTimes(2); // Initial save, then update with hash
+    await service.settleBet('bet123', 'WIN', 100);
+
+    expect(repoMock.findOne).toHaveBeenCalledWith({
+      where: { referenceId: 'settle_bet123' },
+    });
+    expect(repoMock.create).toHaveBeenCalled();
+    expect(sorobanService.invokeContract).toHaveBeenCalledWith('settle', [
+      'bet123',
+      'WIN',
+      '100',
+    ]);
+    expect(repoMock.save).toHaveBeenCalledTimes(2); // Initial save, then update with hash
   });
 
   it('should handle idempotency (already confirmed)', async () => {
-      repoMock.findOne.mockResolvedValue({ 
-          status: SettlementStatus.CONFIRMED, 
-          referenceId: 'settle_bet123',
-      });
-      
-      const result = await service.settleBet('bet123', 'WIN', 100);
-      expect(result.status).toBe(SettlementStatus.CONFIRMED);
-      expect(sorobanService.invokeContract).not.toHaveBeenCalled();
+    repoMock.findOne.mockResolvedValue({
+      status: SettlementStatus.CONFIRMED,
+      referenceId: 'settle_bet123',
+    });
+
+    const result = await service.settleBet('bet123', 'WIN', 100);
+    expect(result.status).toBe(SettlementStatus.CONFIRMED);
+    expect(sorobanService.invokeContract).not.toHaveBeenCalled();
   });
 
   it('should handle idempotency (pending)', async () => {
-      repoMock.findOne.mockResolvedValue({ 
-          status: SettlementStatus.PENDING, 
-          referenceId: 'settle_bet123',
-      });
-      
-      const result = await service.settleBet('bet123', 'WIN', 100);
-      expect(result.status).toBe(SettlementStatus.PENDING);
-      expect(sorobanService.invokeContract).not.toHaveBeenCalled();
+    repoMock.findOne.mockResolvedValue({
+      status: SettlementStatus.PENDING,
+      referenceId: 'settle_bet123',
+    });
+
+    const result = await service.settleBet('bet123', 'WIN', 100);
+    expect(result.status).toBe(SettlementStatus.PENDING);
+    expect(sorobanService.invokeContract).not.toHaveBeenCalled();
   });
 });

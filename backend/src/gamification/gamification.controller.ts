@@ -8,21 +8,21 @@ import { UserRole } from '../users/entities/user.entity';
 @Controller('gamification')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class GamificationController {
-    constructor(private readonly gamificationService: GamificationService) { }
+  constructor(private readonly gamificationService: GamificationService) {}
 
-    @Post('achievements')
-    @Roles(UserRole.ADMIN)
-    async createAchievement(@Body() createDto: CreateAchievementDto) {
-        return this.gamificationService.createAchievement(createDto);
-    }
+  @Post('achievements')
+  @Roles(UserRole.ADMIN)
+  async createAchievement(@Body() createDto: CreateAchievementDto) {
+    return this.gamificationService.createAchievement(createDto);
+  }
 
-    @Get('achievements')
-    async getAchievements() {
-        return this.gamificationService.getAchievements();
-    }
+  @Get('achievements')
+  async getAchievements() {
+    return this.gamificationService.getAchievements();
+  }
 
-    @Get('users/:userId/achievements')
-    async getUserAchievements(@Param('userId') userId: string) {
-        return this.gamificationService.getUserAchievements(userId);
-    }
+  @Get('users/:userId/achievements')
+  async getUserAchievements(@Param('userId') userId: string) {
+    return this.gamificationService.getUserAchievements(userId);
+  }
 }

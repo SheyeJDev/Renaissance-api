@@ -1,24 +1,24 @@
-import { 
-  IsEnum, 
-  IsNumber, 
-  IsOptional, 
-  IsString, 
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
   IsUUID,
   IsBoolean,
   IsDate,
   ValidateNested,
   Min,
-  Max
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { 
-  ValidationStatus, 
-  TransactionType, 
-  ValidationType, 
+import {
+  ValidationStatus,
+  TransactionType,
+  ValidationType,
   ViolationType,
   ValidationRule,
   ValidationResult,
-  IntegrityViolation
+  IntegrityViolation,
 } from '../entities/transaction-validation-report.entity';
 
 // Configuration DTO

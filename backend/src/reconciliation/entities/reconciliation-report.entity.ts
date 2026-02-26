@@ -139,7 +139,13 @@ export class ReconciliationReport {
   totalInconsistencies: number;
 
   // Ledger consistency specific fields
-  @Column({ name: 'tolerance_threshold', type: 'decimal', precision: 10, scale: 8, nullable: true })
+  @Column({
+    name: 'tolerance_threshold',
+    type: 'decimal',
+    precision: 10,
+    scale: 8,
+    nullable: true,
+  })
   toleranceThreshold: number | null;
 
   @Column({ name: 'total_users_checked', type: 'int', default: 0 })
@@ -151,16 +157,40 @@ export class ReconciliationReport {
   @Column({ name: 'users_within_tolerance', type: 'int', default: 0 })
   usersWithinTolerance: number;
 
-  @Column({ name: 'total_discrepancy_amount', type: 'decimal', precision: 18, scale: 8, default: 0 })
+  @Column({
+    name: 'total_discrepancy_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 8,
+    default: 0,
+  })
   totalDiscrepancyAmount: number;
 
-  @Column({ name: 'average_discrepancy', type: 'decimal', precision: 18, scale: 8, default: 0 })
+  @Column({
+    name: 'average_discrepancy',
+    type: 'decimal',
+    precision: 18,
+    scale: 8,
+    default: 0,
+  })
   averageDiscrepancy: number;
 
-  @Column({ name: 'max_discrepancy', type: 'decimal', precision: 18, scale: 8, default: 0 })
+  @Column({
+    name: 'max_discrepancy',
+    type: 'decimal',
+    precision: 18,
+    scale: 8,
+    default: 0,
+  })
   maxDiscrepancy: number;
 
-  @Column({ name: 'min_discrepancy', type: 'decimal', precision: 18, scale: 8, default: 0 })
+  @Column({
+    name: 'min_discrepancy',
+    type: 'decimal',
+    precision: 18,
+    scale: 8,
+    default: 0,
+  })
   minDiscrepancy: number;
 
   @Column({ type: 'json', nullable: true })

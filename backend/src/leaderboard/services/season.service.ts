@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
 import { Season, SeasonStatus } from '../entities/season.entity';
@@ -26,7 +31,9 @@ export class SeasonService {
     });
 
     if (overlapping) {
-      throw new BadRequestException('Season dates overlap with existing season');
+      throw new BadRequestException(
+        'Season dates overlap with existing season',
+      );
     }
 
     const season = this.seasonRepo.create({

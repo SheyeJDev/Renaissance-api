@@ -29,27 +29,27 @@ export class AdminAuditService {
   async logAction(data: AuditLogData): Promise<AdminAuditLog> {
     try {
       const auditLog = this.auditLogRepo.create({
-        userId: data.userId,
-        action: data.action,
-        targetUserId: data.targetUserId,
-        targetResource: data.targetResource,
-        resourceId: data.resourceId,
-        changes: data.changes,
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
+        adminId: data.userId,
+        actionType: data.action as any,
+        affectedUserId: data.targetUserId,
+        affectedEntityType: data.targetResource,
+        affectedEntityId: data.resourceId,
+        previousValues: data.changes,
         metadata: {
           ...data.metadata,
           permission: data.permission,
           timestamp: new Date().toISOString(),
+          ipAddress: data.ipAddress,
+          userAgent: data.userAgent,
         },
       });
 
       const saved = await this.auditLogRepo.save(auditLog);
-      
+
       this.logger.log(
         `Audit log created: ${data.action} by user ${data.userId}`,
       );
-      
+
       return saved;
     } catch (error) {
       this.logger.error('Failed to create audit log', error);
@@ -111,20 +111,26 @@ export class AdminAuditService {
     return { logs, total };
   }
 
-  async getUserActivitySummary(userId: string, days: number = 30): Promise<any> {
+  async getUserActivitySummary(
+    userId: string,
+    days: number = 30,
+  ): Promise<any> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
     const logs = await this.auditLogRepo
       .createQueryBuilder('audit')
-      .where('audit.userId = :userId', { userId })
+      .where('audit.adminId = :userId', { userId })
       .andWhere('audit.createdAt >= :startDate', { startDate })
       .getMany();
 
-    const actionCounts = logs.reduce((acc, log) => {
-      acc[log.action] = (acc[log.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const actionCounts = logs.reduce(
+      (acc, log) => {
+        acc[log.actionType] = (acc[log.actionType] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       userId,

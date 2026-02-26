@@ -139,7 +139,7 @@ export class NotificationsService {
       type: NotificationType.BET_OUTCOME,
       userId,
       title: betData.isWin ? '🎉 Bet Won!' : '😔 Bet Lost',
-      message: betData.isWin 
+      message: betData.isWin
         ? `Congratulations! You won ${betData.winningsAmount} on your ${betData.betType} bet.`
         : `Your ${betData.betType} bet was not successful. Better luck next time!`,
       data: betData,
@@ -169,7 +169,8 @@ export class NotificationsService {
       data: spinData,
       timestamp: new Date(),
       read: false,
-      priority: spinData.multiplier && spinData.multiplier > 10 ? 'high' : 'medium',
+      priority:
+        spinData.multiplier && spinData.multiplier > 10 ? 'high' : 'medium',
     };
 
     await this.queueNotification(notification);
@@ -182,9 +183,12 @@ export class NotificationsService {
     userId: string,
     positionData: LeaderboardPositionChangeNotification['data'],
   ): Promise<void> {
-    this.logger.log(`Creating leaderboard position change notification for user ${userId}`);
+    this.logger.log(
+      `Creating leaderboard position change notification for user ${userId}`,
+    );
 
-    const changeText = positionData.changeType === 'improved' ? 'climbed' : 'dropped';
+    const changeText =
+      positionData.changeType === 'improved' ? 'climbed' : 'dropped';
     const emoji = positionData.changeType === 'improved' ? '📈' : '📉';
 
     const notification: LeaderboardPositionChangeNotification = {
@@ -196,7 +200,10 @@ export class NotificationsService {
       data: positionData,
       timestamp: new Date(),
       read: false,
-      priority: positionData.changeType === 'improved' && positionData.newPosition <= 10 ? 'high' : 'low',
+      priority:
+        positionData.changeType === 'improved' && positionData.newPosition <= 10
+          ? 'high'
+          : 'low',
     };
 
     await this.queueNotification(notification);
@@ -232,12 +239,18 @@ export class NotificationsService {
    * Queue notification for processing
    * Implements event queue for scalability
    */
-  private async queueNotification(notification: BaseNotification): Promise<void> {
+  private async queueNotification(
+    notification: BaseNotification,
+  ): Promise<void> {
     // Check user preferences before queuing
-    const preferences = await this.getUserNotificationPreferences(notification.userId);
-    
+    const preferences = await this.getUserNotificationPreferences(
+      notification.userId,
+    );
+
     if (!this.shouldSendNotification(notification.type, preferences)) {
-      this.logger.debug(`Notification ${notification.type} disabled for user ${notification.userId}`);
+      this.logger.debug(
+        `Notification ${notification.type} disabled for user ${notification.userId}`,
+      );
       return;
     }
 
@@ -254,7 +267,7 @@ export class NotificationsService {
     };
 
     this.notificationQueue.set(queueItem.id, queueItem);
-    
+
     // Process immediately for high/urgent priority
     if (queueItem.priority === 'high' || queueItem.priority === 'urgent') {
       await this.processNotification(queueItem.id);
@@ -263,7 +276,9 @@ export class NotificationsService {
       this.scheduleNotification(queueItem.id);
     }
 
-    this.logger.debug(`Queued notification ${queueItem.id} for user ${notification.userId}`);
+    this.logger.debug(
+      `Queued notification ${queueItem.id} for user ${notification.userId}`,
+    );
   }
 
   /**
@@ -278,35 +293,39 @@ export class NotificationsService {
 
     try {
       const notification = queueItem.payload as BaseNotification;
-      
+
       // Send to connected WebSocket clients
       await this.sendToConnectedUsers(notification.userId, notification);
-      
+
       // Store in database for persistence
       await this.storeNotification(notification);
-      
+
       // Send email/push if enabled
       await this.sendExternalNotifications(notification);
-      
+
       // Remove from queue
       this.notificationQueue.delete(queueItemId);
-      
+
       this.logger.log(`Successfully processed notification ${queueItemId}`);
       return true;
     } catch (error) {
       queueItem.attempts++;
-      
+
       if (queueItem.attempts >= queueItem.maxAttempts) {
         this.notificationQueue.delete(queueItemId);
-        this.logger.error(`Failed to process notification ${queueItemId} after ${queueItem.maxAttempts} attempts`);
+        this.logger.error(
+          `Failed to process notification ${queueItemId} after ${queueItem.maxAttempts} attempts`,
+        );
       } else {
         // Retry with exponential backoff
         const retryDelay = Math.pow(2, queueItem.attempts) * 1000; // 2s, 4s, 8s
         queueItem.scheduledFor = new Date(Date.now() + retryDelay);
         this.scheduleNotification(queueItemId);
-        this.logger.warn(`Retrying notification ${queueItemId} in ${retryDelay}ms`);
+        this.logger.warn(
+          `Retrying notification ${queueItemId} in ${retryDelay}ms`,
+        );
       }
-      
+
       return false;
     }
   }
@@ -314,7 +333,10 @@ export class NotificationsService {
   /**
    * Send notification to connected WebSocket users
    */
-  private async sendToConnectedUsers(userId: string, notification: BaseNotification): Promise<void> {
+  private async sendToConnectedUsers(
+    userId: string,
+    notification: BaseNotification,
+  ): Promise<void> {
     const userSockets = this.connectedUsers.get(userId);
     if (!userSockets || userSockets.size === 0) {
       this.logger.debug(`No connected sockets for user ${userId}`);
@@ -323,13 +345,17 @@ export class NotificationsService {
 
     // This would be handled by the NotificationsGateway
     // For now, we'll just log the intent
-    this.logger.debug(`Sending notification to ${userSockets.size} connected clients for user ${userId}`);
+    this.logger.debug(
+      `Sending notification to ${userSockets.size} connected clients for user ${userId}`,
+    );
   }
 
   /**
    * Store notification in database
    */
-  private async storeNotification(notification: BaseNotification): Promise<void> {
+  private async storeNotification(
+    notification: BaseNotification,
+  ): Promise<void> {
     // This would store in a notifications table
     // For now, we'll just log the intent
     this.logger.debug(`Storing notification ${notification.id} in database`);
@@ -338,7 +364,9 @@ export class NotificationsService {
   /**
    * Send external notifications (email, push)
    */
-  private async sendExternalNotifications(notification: BaseNotification): Promise<void> {
+  private async sendExternalNotifications(
+    notification: BaseNotification,
+  ): Promise<void> {
     // This would integrate with email and push notification services
     // For now, we'll just log the intent
     this.logger.debug(`Sending external notifications for ${notification.id}`);
@@ -366,7 +394,9 @@ export class NotificationsService {
   /**
    * Get user notification preferences
    */
-  async getUserNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+  async getUserNotificationPreferences(
+    userId: string,
+  ): Promise<NotificationPreferences> {
     // This would fetch from database
     // For now, return default preferences
     return {
@@ -391,12 +421,17 @@ export class NotificationsService {
     userId: string,
     preferences: Partial<NotificationPreferences>,
   ): Promise<NotificationPreferences> {
-    const currentPreferences = await this.getUserNotificationPreferences(userId);
-    const updatedPreferences = { ...currentPreferences, ...preferences, userId };
-    
+    const currentPreferences =
+      await this.getUserNotificationPreferences(userId);
+    const updatedPreferences = {
+      ...currentPreferences,
+      ...preferences,
+      userId,
+    };
+
     // This would update in database
     this.logger.log(`Updated notification preferences for user ${userId}`);
-    
+
     return updatedPreferences;
   }
 
@@ -421,7 +456,9 @@ export class NotificationsService {
       case NotificationType.ACCOUNT_UPDATE:
         return preferences.accountUpdates && preferences.inAppNotifications;
       case NotificationType.SYSTEM_ANNOUNCEMENT:
-        return preferences.systemAnnouncements && preferences.inAppNotifications;
+        return (
+          preferences.systemAnnouncements && preferences.inAppNotifications
+        );
       default:
         return true;
     }
@@ -499,13 +536,17 @@ export class NotificationsService {
     this.logger.log(`Processing ${readyItems.length} batch notifications`);
 
     const results = await Promise.allSettled(
-      readyItems.map(id => this.processNotification(id))
+      readyItems.map((id) => this.processNotification(id)),
     );
 
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    const successful = results.filter(
+      (r) => r.status === 'fulfilled' && r.value,
+    ).length;
     const failed = results.length - successful;
 
-    this.logger.log(`Batch processing complete: ${successful} successful, ${failed} failed`);
+    this.logger.log(
+      `Batch processing complete: ${successful} successful, ${failed} failed`,
+    );
   }
 
   /**
@@ -539,9 +580,14 @@ export class NotificationsService {
   /**
    * Mark notification as read
    */
-  async markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
+  async markNotificationAsRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<void> {
     // This would update in database
-    this.logger.log(`Marked notification ${notificationId} as read for user ${userId}`);
+    this.logger.log(
+      `Marked notification ${notificationId} as read for user ${userId}`,
+    );
   }
 
   /**
@@ -555,9 +601,14 @@ export class NotificationsService {
   /**
    * Delete notification
    */
-  async deleteNotification(userId: string, notificationId: string): Promise<void> {
+  async deleteNotification(
+    userId: string,
+    notificationId: string,
+  ): Promise<void> {
     // This would delete from database
-    this.logger.log(`Deleted notification ${notificationId} for user ${userId}`);
+    this.logger.log(
+      `Deleted notification ${notificationId} for user ${userId}`,
+    );
   }
 
   /**
