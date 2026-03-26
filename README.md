@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProofOfHeart
+
+**A decentralized launchpad where the community — not a corporation — validates a cause.**
+
+ProofOfHeart empowers everyday people to rally behind the causes they believe in. By leveraging blockchain transparency and community-driven governance, it removes gatekeepers from the fundraising process and puts trust back where it belongs: in the hands of the people.
+
+## Vision & Mission
+
+**Vision** — A world where any meaningful cause can receive support without needing permission from a centralized authority.
+
+**Mission** — To build an open, transparent launchpad that lets communities discover, validate, and fund causes through decentralized consensus — ensuring that every voice counts and every contribution is accounted for on-chain.
+
+### Core Principles
+
+- **Community First** — Causes are validated by the people, not by a corporate board.
+- **Radical Transparency** — Every decision and transaction lives on-chain for anyone to verify.
+- **Permissionless Participation** — Anyone can propose, support, or challenge a cause.
+- **Trust Through Code** — Smart contracts enforce the rules, removing the need for intermediaries.
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Framework | [Next.js 16](https://nextjs.org/) (App Router) |
+| Language | TypeScript |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
+| Animations | [Framer Motion](https://motion.dev/) |
+| Linting | ESLint 9 |
+| Bundler | Turbopack |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Clone the repository
+git clone https://github.com/Iris-IV/ProofOfHeart-frontend.git
+cd ProofOfHeart-frontend
+
+# Install dependencies
+npm install
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+We welcome contributors of all experience levels! Check the [Issues](../../issues) tab for open tasks — many are tagged as `good first issue` to help you get started.
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<!-- TODO: Add license -->
