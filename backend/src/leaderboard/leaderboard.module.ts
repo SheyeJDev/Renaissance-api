@@ -12,7 +12,7 @@ import { LeaderboardController } from './leaderboard.controller';
 import { LeaderboardQueryService } from './leaderboard-query.service';
 import { LeaderboardAggregationService } from './leaderboard-aggregation.service';
 import { LeaderboardSyncService } from './leaderboard-sync.service';
-// import { LeaderboardGateway } from './leaderboard.gateway';
+import { LeaderboardGateway } from './leaderboard.gateway';
 import { BetPlacedEventHandler } from './listeners/bet-placed.listener';
 import { BetSettledEventHandler } from './listeners/bet-settled.listener';
 import { SpinSettledEventHandler } from './listeners/spin-settled.listener';
@@ -45,7 +45,7 @@ import { Bet } from '../bets/entities/bet.entity';
     LeaderboardQueryService,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    // LeaderboardGateway,
+    LeaderboardGateway,
     BetPlacedEventHandler,
     BetSettledEventHandler,
     SpinSettledEventHandler,
@@ -60,7 +60,7 @@ import { Bet } from '../bets/entities/bet.entity';
     LeaderboardQueryService,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    // LeaderboardGateway,
+    LeaderboardGateway,
     SeasonService,
     SeasonalLeaderboardService,
     SeasonResetService,
