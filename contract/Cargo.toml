@@ -9,6 +9,7 @@ members = [
   "contracts/staking",
   "contracts/treasury",
   "contracts/team_governance",
+  "contracts/tests",
   "contracts/renaissance_spin_to_win",
 ]
 

@@ -61,6 +61,7 @@ import { NFTPlayerCard } from './nft/entities/nft.entity';
 import { Team } from './teams/entities/team.entity';
 
 import { Player } from './players/entities/player.entity';
+import { AnalyticsEvent } from './analytics/entities/analytics-event.entity';
 import { WebhookModule } from './webhooks/webhook.module';
 import { FraudModule } from './fraud/fraud.module';
 import { TeamsModule } from './teams/teams.module';
@@ -121,6 +122,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
       NFTPlayerCard,
       Team,
       Player,
+      AnalyticsEvent,
     ]),
     SpinGameModule,
     RateLimitModule,
