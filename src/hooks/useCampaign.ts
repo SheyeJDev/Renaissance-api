@@ -21,35 +21,35 @@ export function useCampaign(id: string | number): UseCampaignResult {
 
   useEffect(() => {
     if (isNaN(numericId)) {
-      queueMicrotask(() => {
+      // Avoid calling setState synchronously in effect
+      setTimeout(() => {
         setNotFound(true);
         setIsLoading(false);
-      });
+      }, 0);
       return;
     }
 
     let cancelled = false;
 
-    queueMicrotask(() => {
+    setTimeout(() => {
       setIsLoading(true);
       setError(null);
       setNotFound(false);
       setCampaign(null);
-    });
-
-    getCampaign(numericId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data === null) setNotFound(true);
-        else setCampaign(data);
-      })
-      .catch((err) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Failed to load campaign.');
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+      getCampaign(numericId)
+        .then((data) => {
+          if (cancelled) return;
+          if (data === null) setNotFound(true);
+          else setCampaign(data);
+        })
+        .catch((err: unknown) => {
+          if (!cancelled)
+            setError(err instanceof Error ? err.message : 'Failed to load campaign.');
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+    }, 0);
 
     return () => {
       cancelled = true;
