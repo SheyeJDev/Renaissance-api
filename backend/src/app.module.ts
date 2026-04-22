@@ -45,6 +45,9 @@ import { UserAchievement } from './gamification/entities/user-achievement.entity
 import { Team } from './teams/entities/team.entity';
 import { RankingModule } from './leaderboard/ranking.module';
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
+import { TreasuryModule } from './treasury/treasury.module';
+import { StakingModule } from './stake/staking.module';
+import { PlayerModule } from './player/player.module';
 
 @Module({
   imports: [
@@ -107,6 +110,9 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     EventListenerModule,
     GamificationModule,
     RankingModule,
+    TreasuryModule,
+    StakingModule,
+    PlayerModule,
   ],
   providers: [
     {
