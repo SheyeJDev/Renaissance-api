@@ -50,6 +50,10 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { TreasuryModule } from './treasury/treasury.module';
 import { StakingModule } from './stake/staking.module';
 import { PlayerModule } from './player/player.module';
+import { NFTMarketplaceModule } from './nft/nft-marketplace.module';
+import { NFTPlayerCard } from './nft/entities/nft-player-card.entity';
+import { NFTListing } from './nft/entities/nft-listing.entity';
+import { NFTOffer } from './nft/entities/nft-offer.entity';
 import { DatabaseModule } from './database/database.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -99,6 +103,9 @@ import { FraudModule } from './fraud/fraud.module';
       UserAchievement,
       Team,
       Comment,
+      NFTPlayerCard,
+      NFTListing,
+      NFTOffer,
     ]),
     DatabaseModule,
     RateLimitModule,
@@ -122,6 +129,7 @@ import { FraudModule } from './fraud/fraud.module';
     TreasuryModule,
     StakingModule,
     PlayerModule,
+    NFTMarketplaceModule,
     AnalyticsModule,
     NotificationsModule,
     FraudModule,
