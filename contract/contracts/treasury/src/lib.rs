@@ -148,3 +148,37 @@ impl Treasury {
         env.storage().instance().set(&lock_key, &false);
     }
 }
+
+use soroban_sdk::{contractimpl, Env, Symbol};
+
+pub struct TreasuryContract;
+
+#[contractimpl]
+impl TreasuryContract {
+    pub fn update_treasury_balance(env: Env, amount: i128) {
+        env.storage().set(&Symbol::short("treasury_balance"), &amount);
+    }
+
+    pub fn update_user_liabilities(env: Env, amount: i128) {
+        env.storage().set(&Symbol::short("user_liabilities"), &amount);
+    }
+
+    pub fn check_reserve_ratio(env: Env) {
+        let treasury: i128 = env.storage().get(&Symbol::short("treasury_balance")).unwrap_or(0);
+        let liabilities: i128 = env.storage().get(&Symbol::short("user_liabilities")).unwrap_or(1); // avoid div by zero
+
+        let ratio = (treasury * 100) / liabilities;
+
+        if ratio < 110 {
+            env.events().publish((Symbol::short("reserve_alert"),), (ratio,));
+        }
+        if ratio < 100 {
+            env.storage().set(&Symbol::short("paused"), &true);
+            env.events().publish((Symbol::short("auto_pause"),), (ratio,));
+        }
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().get(&Symbol::short("paused")).unwrap_or(false)
+    }
+}
