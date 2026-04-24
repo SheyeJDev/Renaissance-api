@@ -20,6 +20,11 @@ export class StakingController {
     return this.stakingService.claimRewards(body.playerId, stakeId);
   }
 
+  @Post(':stakeId/compound')
+  compound(@Param('stakeId') stakeId: string, @Body() body: { playerId: string }) {
+    return this.stakingService.compoundRewards(body.playerId, stakeId);
+  }
+
   @Get(':playerId')
   getStakes(@Param('playerId') playerId: string) {
     return this.stakingService.getPlayerStakes(playerId);

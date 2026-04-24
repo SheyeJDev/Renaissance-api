@@ -277,6 +277,106 @@ impl StakingContract {
         let now = env.ledger().timestamp();
         Ok(now - stake_data.timestamp)
     }
+
+    /// Set the annual reward rate in basis points (e.g. 1200 = 12% APR).
+    /// Only callable by admin.
+    pub fn set_reward_rate(env: Env, admin: Address, rate_bps: i128) -> Result<(), ContractError> {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        if admin != stored_admin {
+            return Err(ContractError::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::RewardRate, &rate_bps);
+        Ok(())
+    }
+
+    /// Accrue pending rewards for a user based on elapsed time and their total stake.
+    /// Called internally before any stake/unstake/compound operation.
+    fn accrue_rewards(env: &Env, user: &Address) {
+        let total_key = DataKey::TotalStake(user.clone());
+        let total_stake: i128 = env.storage().persistent().get(&total_key).unwrap_or(0);
+        if total_stake == 0 {
+            return;
+        }
+
+        let rate_bps: i128 = env.storage().instance().get(&DataKey::RewardRate).unwrap_or(0);
+        if rate_bps == 0 {
+            return;
+        }
+
+        let now = env.ledger().timestamp();
+        let last_time_key = DataKey::LastRewardTime(user.clone());
+        let last_time: u64 = env.storage().persistent().get(&last_time_key).unwrap_or(now);
+
+        let elapsed = now.saturating_sub(last_time) as i128;
+        if elapsed == 0 {
+            return;
+        }
+
+        // reward = principal * rate_bps / 10000 * elapsed / seconds_per_year
+        let seconds_per_year: i128 = 365 * 24 * 3600;
+        let reward = total_stake * rate_bps * elapsed / (10_000 * seconds_per_year);
+
+        if reward > 0 {
+            let pending_key = DataKey::PendingRewards(user.clone());
+            let pending: i128 = env.storage().persistent().get(&pending_key).unwrap_or(0);
+            env.storage().persistent().set(&pending_key, &(pending + reward));
+        }
+
+        env.storage().persistent().set(&last_time_key, &now);
+    }
+
+    /// Compound pending rewards: add them to the user's total staked principal.
+    /// Tracked separately in CompoundedAmount for transparency.
+    pub fn compound_rewards(env: Env, user: Address) -> Result<i128, ContractError> {
+        user.require_auth();
+
+        Self::accrue_rewards(&env, &user);
+
+        let pending_key = DataKey::PendingRewards(user.clone());
+        let pending: i128 = env.storage().persistent().get(&pending_key).unwrap_or(0);
+
+        if pending <= 0 {
+            return Err(ContractError::NoRewardsToClaim);
+        }
+
+        // Add pending rewards to total stake (compounding)
+        let total_key = DataKey::TotalStake(user.clone());
+        let current_total: i128 = env.storage().persistent().get(&total_key).unwrap_or(0);
+        let new_total = current_total + pending;
+        env.storage().persistent().set(&total_key, &new_total);
+
+        // Track total compounded amount separately
+        let compounded_key = DataKey::CompoundedAmount(user.clone());
+        let prev_compounded: i128 = env.storage().persistent().get(&compounded_key).unwrap_or(0);
+        env.storage().persistent().set(&compounded_key, &(prev_compounded + pending));
+
+        // Clear pending rewards
+        env.storage().persistent().set(&pending_key, &0i128);
+
+        Ok(pending)
+    }
+
+    /// Get pending (uncompounded) rewards for a user.
+    pub fn get_pending_rewards(env: Env, user: Address) -> i128 {
+        Self::accrue_rewards(&env, &user);
+        env.storage()
+            .persistent()
+            .get(&DataKey::PendingRewards(user))
+            .unwrap_or(0)
+    }
+
+    /// Get total amount added to principal via compounding.
+    pub fn get_compounded_amount(env: Env, user: Address) -> i128 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::CompoundedAmount(user))
+            .unwrap_or(0)
+    }
 }
 
 #[cfg(test)]

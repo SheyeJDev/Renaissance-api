@@ -1,14 +1,26 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum WalletType {
   FREIGHTER = 'freighter',
+  XBULL = 'xbull',
+  LOBSTR = 'lobstr',
+  OTHER = 'other',
 }
 
 export enum WalletStatus {
   ACTIVE = 'active',
+  DISCONNECTED = 'disconnected',
 }
 
 @Entity('wallet_connections')
+@Index(['userId', 'publicKey'], { unique: true })
 export class WalletConnection {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -16,7 +28,7 @@ export class WalletConnection {
   @Column()
   userId: string;
 
-  @Column({ unique: true })
+  @Column()
   publicKey: string;
 
   @Column({ type: 'enum', enum: WalletType, default: WalletType.FREIGHTER })
@@ -24,6 +36,9 @@ export class WalletConnection {
 
   @Column({ type: 'enum', enum: WalletStatus, default: WalletStatus.ACTIVE })
   status: WalletStatus;
+
+  @Column({ default: false })
+  isDefault: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -12,6 +12,11 @@ pub enum DataKey {
     StakeNonce(Address),         // u32: Nonce used for generating unique stake IDs
     TotalStakeDuration(Address), // u64: Cumulative active staking duration for a user (seconds)
     ActiveSince(Address),        // u64: Timestamp when user last became an active staker
+    // Compounding
+    RewardRate,                  // i128: Annual reward rate in basis points (e.g. 1200 = 12%)
+    PendingRewards(Address),     // i128: Accumulated pending rewards for a user
+    CompoundedAmount(Address),   // i128: Total amount added to principal via compounding
+    LastRewardTime(Address),     // u64: Last time rewards were accrued for a user
 }
 
 #[contracttype]
