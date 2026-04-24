@@ -7,10 +7,10 @@ import { BetsService } from './bets.service';
 import { Bet, BetStatus } from './entities/bet.entity';
 import { Match, MatchOutcome } from '../matches/entities/match.entity';
 import { User } from '../users/entities/user.entity';
-import { WalletService } from '../wallet/wallet.service';
-import { FreeBetVoucherService } from '../free-bet-vouchers/free-bet-voucher.service';
-import { TransactionSource } from '../transactions/entities/transaction.entity';
-import { BetSettledEvent } from '../analytics/events/bet-settled.event';
+import { WalletService } from '../wallet';
+import { FreeBetVoucherService } from '../free-bet-vouchers/free-bet-vouchers.service';
+import { TransactionSource } from '../wallet/entities/balance-transaction.entity';
+import { BetSettledEvent } from '../leaderboard/domain/events/bet-settled.event';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('BetsService', () => {
@@ -628,5 +628,4 @@ describe('BetsService', () => {
       expect(result.winRate).toBe(0);
     });
   });
-});</content>
-<parameter name="filePath">c:\Users\u-adamu\Desktop\wave 2\Renaissance-api\backend\src\bets\bets.service.spec.ts
+});

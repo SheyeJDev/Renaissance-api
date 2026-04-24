@@ -5,6 +5,7 @@ import { Bet } from '../bets/entities/bet.entity';
 import { BetsModule } from '../bets/bets.module';
 import { BetSettlementService } from './bet-settlement.service';
 import { MatchFinishedEventHandler } from './match-finished.listener';
+import { MatchCancelledEventHandler } from './match-cancelled.listener';
 import { BetSettlementAuditLog } from './entities/bet-settlement-audit-log.entity';
 import { BetSettlementJob } from './entities/bet-settlement-job.entity';
 
@@ -14,7 +15,11 @@ import { BetSettlementJob } from './entities/bet-settlement-job.entity';
     TypeOrmModule.forFeature([Bet, BetSettlementJob, BetSettlementAuditLog]),
     BetsModule,
   ],
-  providers: [BetSettlementService, MatchFinishedEventHandler],
+  providers: [
+    BetSettlementService,
+    MatchFinishedEventHandler,
+    MatchCancelledEventHandler,
+  ],
   exports: [BetSettlementService],
 })
 export class BetSettlementModule {}

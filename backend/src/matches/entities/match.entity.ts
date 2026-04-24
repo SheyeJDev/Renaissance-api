@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Prediction } from '../../predictions/entities/prediction.entity';
 import { MatchStatus, MatchOutcome } from '../../common/enums/match.enums';
+import { Comment } from '../../comments/entities/comment.entity';
 
 export { MatchStatus, MatchOutcome };
 
@@ -81,4 +82,7 @@ export class Match extends BaseEntity {
 
   @OneToMany(() => Prediction, (prediction) => prediction.match)
   predictions: Prediction[];
+
+  @OneToMany(() => Comment, (comment) => comment.match)
+  comments: Comment[];
 }

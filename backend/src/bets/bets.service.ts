@@ -17,8 +17,7 @@ import {
 } from '../matches/entities/match.entity';
 import { CreateBetDto } from './dto/create-bet.dto';
 import { UpdateBetStatusDto } from './dto/update-bet-status.dto';
-// @ts-ignore - wallet module resolution issue
-import { WalletService } from '../wallet/wallet.service';
+import { WalletService } from '../wallet';
 import { FreeBetVoucherService } from '../free-bet-vouchers/free-bet-vouchers.service';
 import { TransactionSource } from '../wallet/entities/balance-transaction.entity';
 import { BetPlacedEvent } from '../leaderboard/domain/events/bet-placed.event';
@@ -85,15 +84,15 @@ export class BetsService {
         );
       }
 
-// Check if user already has a bet on this match
+      // Check if user already has a bet on this match
       const betCount = await this.betRepository.count({
         where: { userId, match: { id: createBetDto.matchId } },
       });
 
       const MAX_BETS_PER_MATCH = 1;
       if (betCount >= MAX_BETS_PER_MATCH) {
-  throw new BadRequestException('Bet limit reached for this match');
-}
+        throw new BadRequestException('Bet limit reached for this match');
+      }
 
       // Resolve free bet voucher if provided. Vouchers: non-withdrawable, betting only, auto-consumed on use.
       let useVoucher = false;
@@ -122,16 +121,10 @@ export class BetsService {
             userId,
             Number(createBetDto.stakeAmount),
             TransactionSource.BET,
-            uuidv4(),
-            {
-              reason: 'BET_PLACEMENT',
-              matchId: createBetDto.matchId,
-              predictedOutcome: createBetDto.predictedOutcome,
-            },
           );
         } catch (error) {
           throw new BadRequestException(
-            error.message || 'Failed to deduct stake amount from wallet',
+            error || 'Failed to deduct stake amount from wallet',
           );
         }
       }
@@ -384,11 +377,15 @@ export class BetsService {
     }
 
     if (match.status !== MatchStatus.FINISHED) {
-      throw new BadRequestException('Cannot settle bets: Match is not finished');
+      throw new BadRequestException(
+        'Cannot settle bets: Match is not finished',
+      );
     }
 
     if (!match.outcome) {
-      throw new BadRequestException('Cannot settle bets: Match outcome not set');
+      throw new BadRequestException(
+        'Cannot settle bets: Match outcome not set',
+      );
     }
 
     const batchSize = Math.max(1, Math.min(options.batchSize ?? 200, 500));
@@ -413,9 +410,30 @@ export class BetsService {
   }
 
   /**
-   * Cancel a bet (only if still pending)
-   * Refunds the stake amount to user wallet
+   * Refund all pending bets for a cancelled match
    */
+  async refundMatchBets(
+    matchId: string,
+    options: SettlementExecutionOptions = {},
+  ): Promise<BetSettlementSummary> {
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Match not found');
+    }
+
+    if (match.status !== MatchStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Cannot refund bets: Match is not cancelled',
+      );
+    }
+
+    const batchSize = Math.max(1, Math.min(options.batchSize ?? 200, 500));
+
+    return this.processRefundBatches(match, batchSize);
+  }
   async cancelBet(
     betId: string,
     userId: string,
@@ -464,16 +482,6 @@ export class BetsService {
           bet.userId,
           Number(bet.stakeAmount),
           TransactionSource.BET,
-          uuidv4(),
-          {
-            reason: 'BET_CANCELLATION',
-            betId: bet.id,
-            matchId: bet.matchId,
-            stakeAmount: Number(bet.stakeAmount),
-            cancellationReason: isAdmin ? 'admin_cancelled' : 'user_cancelled',
-            isFreeBet,
-            isVoucherWithdrawable,
-          },
         );
       }
 
@@ -610,10 +618,10 @@ export class BetsService {
           if (winningsAmount > 0) {
             const balanceResult =
               await this.walletService.updateUserBalanceWithQueryRunner(
-                queryRunner,
                 bet.userId,
                 winningsAmount,
-                'BET_SETTLEMENT',
+                'credit',
+                queryRunner,
                 bet.id,
                 {
                   reason: 'BET_WINNING',
@@ -624,7 +632,6 @@ export class BetsService {
                   isFreeBet,
                   isVoucherWithdrawable,
                 },
-                !isFreeBet || isVoucherWithdrawable,
               );
 
             if (!balanceResult.success) {
@@ -659,6 +666,136 @@ export class BetsService {
 
       await queryRunner.commitTransaction();
       settledBetEvents.forEach((event) => this.eventBus.publish(event));
+      return summary;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async processRefundBatches(
+    match: Match,
+    batchSize: number,
+  ): Promise<BetSettlementSummary> {
+    const summary: BetSettlementSummary = {
+      settled: 0,
+      won: 0,
+      lost: 0,
+      totalPayout: 0,
+    };
+
+    while (true) {
+      const batch = await this.loadPendingRefundBatch(match.id, batchSize);
+
+      if (batch.length === 0) {
+        break;
+      }
+
+      const batchSummary = await this.refundBetBatch(match, batch);
+      summary.settled += batchSummary.settled;
+      summary.won += batchSummary.won;
+      summary.lost += batchSummary.lost;
+      summary.totalPayout += batchSummary.totalPayout;
+    }
+
+    return summary;
+  }
+
+  private async loadPendingRefundBatch(
+    matchId: string,
+    batchSize: number,
+  ): Promise<Bet[]> {
+    return this.betRepository
+      .createQueryBuilder('bet')
+      .where('bet.matchId = :matchId', { matchId })
+      .andWhere('bet.status = :status', { status: BetStatus.PENDING })
+      .orderBy('bet.createdAt', 'ASC')
+      .take(batchSize)
+      .getMany();
+  }
+
+  private async refundBetBatch(
+    match: Match,
+    pendingBatch: Bet[],
+  ): Promise<BetSettlementSummary> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const lockedBets = await queryRunner.manager.find(Bet, {
+        where: {
+          id: In(pendingBatch.map((bet) => bet.id)),
+          status: BetStatus.PENDING,
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      const orderedBets = pendingBatch
+        .map((bet) => lockedBets.find((lockedBet) => lockedBet.id === bet.id))
+        .filter((bet): bet is Bet => Boolean(bet));
+
+      const summary: BetSettlementSummary = {
+        settled: 0,
+        won: 0,
+        lost: 0,
+        totalPayout: 0,
+      };
+
+      for (const bet of orderedBets) {
+        const isFreeBet = Boolean(bet.metadata?.isFreeBet);
+        const isVoucherWithdrawable = Boolean(
+          bet.metadata?.isVoucherWithdrawable,
+        );
+        const voucherId = bet.metadata?.voucherId as string | undefined;
+
+        let refundAmount = Number(bet.stakeAmount);
+
+        if (isFreeBet && voucherId && !isVoucherWithdrawable) {
+          // Restore voucher instead of crediting wallet
+          await this.freeBetVoucherService.restoreVoucherWithManager(
+            queryRunner.manager,
+            voucherId,
+            bet.userId,
+            bet.id,
+          );
+          refundAmount = 0; // No wallet credit for non-withdrawable vouchers
+        } else {
+          // Credit stake back to wallet
+          const balanceResult =
+            await this.walletService.updateUserBalanceWithQueryRunner(
+              bet.userId,
+              refundAmount,
+              'credit',
+              queryRunner,
+              bet.id,
+              {
+                reason: 'BET_REFUND',
+                matchId: bet.matchId,
+                stakeAmount: refundAmount,
+                betId: bet.id,
+                isFreeBet,
+                isVoucherWithdrawable,
+              },
+            );
+
+          if (!balanceResult.success) {
+            throw new BadRequestException(
+              balanceResult.error || `Failed to refund bet ${bet.id}`,
+            );
+          }
+        }
+
+        bet.status = BetStatus.CANCELLED;
+        bet.settledAt = new Date();
+        await queryRunner.manager.save(Bet, bet);
+        summary.settled += 1;
+        summary.totalPayout += refundAmount;
+      }
+
+      await queryRunner.commitTransaction();
       return summary;
     } catch (error) {
       await queryRunner.rollbackTransaction();

@@ -12,6 +12,7 @@ import { Bet } from './bets/entities/bet.entity';
 import { PlayerCardMetadata } from './player-card-metadata/entities/player-card-metadata.entity';
 import { Prediction } from './predictions/entities/prediction.entity';
 import { FreeBetVoucher } from './free-bet-vouchers/entities/free-bet-voucher.entity';
+import { Comment } from './comments/entities/comment.entity';
 import configuration from './config/configuration';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -21,6 +22,7 @@ import { PlayerCardMetadataModule } from './player-card-metadata/player-card-met
 import { PostsModule } from './posts/posts.module';
 import { PredictionsModule } from './predictions/predictions.module';
 import { FreeBetVouchersModule } from './free-bet-vouchers/free-bet-vouchers.module';
+import { CommentsModule } from './comments/comments.module';
 import { validate } from './common/config/env.validation';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { LeaderboardsModule } from './leaderboards/leaderboards.module';
@@ -45,6 +47,17 @@ import { UserAchievement } from './gamification/entities/user-achievement.entity
 import { Team } from './teams/entities/team.entity';
 import { RankingModule } from './leaderboard/ranking.module';
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
+import { TreasuryModule } from './treasury/treasury.module';
+import { StakingModule } from './stake/staking.module';
+import { PlayerModule } from './player/player.module';
+import { NFTMarketplaceModule } from './nft/nft-marketplace.module';
+import { NFTPlayerCard } from './nft/entities/nft-player-card.entity';
+import { NFTListing } from './nft/entities/nft-listing.entity';
+import { NFTOffer } from './nft/entities/nft-offer.entity';
+import { DatabaseModule } from './database/database.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { FraudModule } from './fraud/fraud.module';
 
 @Module({
   imports: [
@@ -89,7 +102,12 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
       Achievement,
       UserAchievement,
       Team,
+      Comment,
+      NFTPlayerCard,
+      NFTListing,
+      NFTOffer,
     ]),
+    DatabaseModule,
     RateLimitModule,
     AuthModule,
     MatchesModule,
@@ -98,6 +116,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     LeaderboardModule,
     FreeBetVouchersModule,
     LeaderboardsModule,
+    CommentsModule,
     UsersModule,
     HealthModule,
     CacheConfigModule,
@@ -107,6 +126,13 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     EventListenerModule,
     GamificationModule,
     RankingModule,
+    TreasuryModule,
+    StakingModule,
+    PlayerModule,
+    NFTMarketplaceModule,
+    AnalyticsModule,
+    NotificationsModule,
+    FraudModule,
   ],
   providers: [
     {

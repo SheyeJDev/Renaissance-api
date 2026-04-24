@@ -10,6 +10,9 @@ export enum TransactionSource {
   WITHDRAWAL = 'withdrawal',
   WINNING = 'winning',
   STAKE = 'stake',
+  NFT_PURCHASE = 'nft_purchase',
+  NFT_SALE = 'nft_sale',
+  NFT_OFFER = 'nft_offer',
 }
 
 @Entity('balance_transactions')

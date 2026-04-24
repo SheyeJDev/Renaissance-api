@@ -110,6 +110,82 @@ export class BetSettlementService {
     return savedJob;
   }
 
+  async enqueueMatchRefund(
+    matchId: string,
+    requestedBy?: string | null,
+    metadata?: Record<string, unknown>,
+  ): Promise<BetSettlementJob | null> {
+    const pendingBetCount = await this.betRepository.count({
+      where: { matchId, status: BetStatus.PENDING },
+    });
+
+    if (pendingBetCount === 0) {
+      await this.writeAudit(
+        null,
+        matchId,
+        BetSettlementAuditAction.SKIPPED,
+        'Refund queue skipped because there are no pending bets',
+        null,
+        null,
+        { pendingBetCount: 0, ...(metadata || {}) },
+      );
+      return null;
+    }
+
+    const activeJob = await this.jobRepository.findOne({
+      where: [
+        { matchId, status: BetSettlementJobStatus.PENDING },
+        { matchId, status: BetSettlementJobStatus.PROCESSING },
+      ],
+      order: { createdAt: 'DESC' },
+    });
+
+    if (activeJob) {
+      await this.writeAudit(
+        activeJob.id,
+        matchId,
+        BetSettlementAuditAction.SKIPPED,
+        'Refund queue request ignored because an active job already exists',
+        activeJob.attemptCount,
+        null,
+        { pendingBetCount, ...(metadata || {}) },
+      );
+      return activeJob;
+    }
+
+    const job = this.jobRepository.create({
+      matchId,
+      status: BetSettlementJobStatus.PENDING,
+      attemptCount: 0,
+      maxAttempts: 5,
+      nextRetryAt: new Date(),
+      requestedBy: requestedBy ?? null,
+      metadata: {
+        type: 'refund',
+        pendingBetCount,
+        ...(metadata || {}),
+      },
+    });
+
+    const savedJob = await this.jobRepository.save(job);
+    await this.writeAudit(
+      savedJob.id,
+      matchId,
+      BetSettlementAuditAction.ENQUEUED,
+      'Refund job enqueued',
+      savedJob.attemptCount,
+      null,
+      {
+        type: 'refund',
+        pendingBetCount,
+        requestedBy: requestedBy ?? null,
+        ...(metadata || {}),
+      },
+    );
+
+    return savedJob;
+  }
+
   async getJob(jobId: string): Promise<BetSettlementJob> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId },
@@ -197,11 +273,13 @@ export class BetSettlementService {
     job.lastError = null;
     await this.jobRepository.save(job);
 
+    const isRefund = job.metadata?.type === 'refund';
+
     await this.writeAudit(
       job.id,
       job.matchId,
       BetSettlementAuditAction.PROCESSING_STARTED,
-      'Settlement job processing started',
+      `${isRefund ? 'Refund' : 'Settlement'} job processing started`,
       job.attemptCount + 1,
       null,
       {
@@ -210,9 +288,13 @@ export class BetSettlementService {
     );
 
     try {
-      const summary = await this.betsService.settleMatchBets(job.matchId, {
-        batchSize: this.batchSize,
-      });
+      const summary = isRefund
+        ? await this.betsService.refundMatchBets(job.matchId, {
+            batchSize: this.batchSize,
+          })
+        : await this.betsService.settleMatchBets(job.matchId, {
+            batchSize: this.batchSize,
+          });
 
       job.attemptCount += 1;
       job.status = BetSettlementJobStatus.COMPLETED;
@@ -225,7 +307,7 @@ export class BetSettlementService {
         job.id,
         job.matchId,
         BetSettlementAuditAction.COMPLETED,
-        'Settlement job completed successfully',
+        `${isRefund ? 'Refund' : 'Settlement'} job completed successfully`,
         job.attemptCount,
         null,
         { ...summary },
@@ -245,7 +327,7 @@ export class BetSettlementService {
           job.id,
           job.matchId,
           BetSettlementAuditAction.FAILED,
-          'Settlement job failed permanently',
+          `${isRefund ? 'Refund' : 'Settlement'} job failed permanently`,
           job.attemptCount,
           errorMessage,
           null,
@@ -263,7 +345,7 @@ export class BetSettlementService {
           job.id,
           job.matchId,
           BetSettlementAuditAction.RETRY_SCHEDULED,
-          'Settlement job scheduled for retry',
+          `${isRefund ? 'Refund' : 'Settlement'} job scheduled for retry`,
           job.attemptCount,
           errorMessage,
           {

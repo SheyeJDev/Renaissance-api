@@ -4,6 +4,7 @@ export enum MatchStatus {
   FINISHED = 'finished',
   CANCELLED = 'cancelled',
   POSTPONED = 'postponed',
+  DISPUTED = 'disputed',
 }
 
 export enum MatchOutcome {

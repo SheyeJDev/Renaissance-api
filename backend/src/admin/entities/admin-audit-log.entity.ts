@@ -6,6 +6,10 @@ export enum AdminActionType {
   BET_CANCELLED = 'bet_cancelled',
   BALANCE_CORRECTED = 'balance_corrected',
   MATCH_CORRECTED = 'match_corrected',
+  COMMENT_APPROVED = 'comment_approved',
+  COMMENT_REJECTED = 'comment_rejected',
+  COMMENT_FLAGGED = 'comment_flagged',
+  COMMENT_DELETED = 'comment_deleted',
 }
 
 @Entity('admin_audit_logs')

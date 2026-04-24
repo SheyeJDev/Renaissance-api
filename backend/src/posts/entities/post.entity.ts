@@ -10,6 +10,7 @@ import {
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { Comment } from '../../comments/entities/comment.entity';
 
 export enum PostStatus {
   DRAFT = 'draft',
@@ -97,4 +98,7 @@ export class Post extends BaseEntity {
     },
   })
   categories: Category[];
+
+  @OneToMany(() => Comment, (comment) => comment.post)
+  comments: Comment[];
 }

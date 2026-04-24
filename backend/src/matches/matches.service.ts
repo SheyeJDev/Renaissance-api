@@ -12,6 +12,7 @@ import { MatchStatus, MatchOutcome } from '../common/enums/match.enums';
 import { CreateMatchDto, UpdateMatchDto, UpdateMatchStatusDto } from './dto';
 import { CacheInvalidationService } from '../common/cache/cache-invalidation.service';
 import { MatchFinishedEvent } from './events/match-finished.event';
+import { MatchCancelledEvent } from './events/match-cancelled.event';
 import { OddsService } from '../odds/odds.service';
 import { OddsUpdateSource } from '../odds/entities/match-odds-history.entity';
 
@@ -218,11 +219,15 @@ export class MatchesService {
     Object.assign(match, updateMatchDto);
     const savedMatch = await this.matchRepository.save(match);
     await this.cacheInvalidationService.invalidatePattern('matches*');
-    await this.oddsService.handleDirectMatchOddsUpdate(savedMatch, previousOdds, {
-      source: OddsUpdateSource.MATCH_UPDATE,
-      reason: 'match_update',
-      metadata: { trigger: 'matches.update' },
-    });
+    await this.oddsService.handleDirectMatchOddsUpdate(
+      savedMatch,
+      previousOdds,
+      {
+        source: OddsUpdateSource.MATCH_UPDATE,
+        reason: 'match_update',
+        metadata: { trigger: 'matches.update' },
+      },
+    );
     await this.publishMatchFinishedEventIfNeeded(previousStatus, savedMatch);
     return savedMatch;
   }
@@ -259,11 +264,15 @@ export class MatchesService {
     Object.assign(match, updateStatusDto);
     const savedMatch = await this.matchRepository.save(match);
     await this.cacheInvalidationService.invalidatePattern('matches*');
-    await this.oddsService.handleDirectMatchOddsUpdate(savedMatch, previousOdds, {
-      source: OddsUpdateSource.MATCH_UPDATE,
-      reason: 'match_status_update',
-      metadata: { trigger: 'matches.update_status' },
-    });
+    await this.oddsService.handleDirectMatchOddsUpdate(
+      savedMatch,
+      previousOdds,
+      {
+        source: OddsUpdateSource.MATCH_UPDATE,
+        reason: 'match_status_update',
+        metadata: { trigger: 'matches.update_status' },
+      },
+    );
     await this.publishMatchFinishedEventIfNeeded(previousStatus, savedMatch);
     return savedMatch;
   }
@@ -340,11 +349,25 @@ export class MatchesService {
         MatchStatus.LIVE,
         MatchStatus.POSTPONED,
         MatchStatus.CANCELLED,
+        MatchStatus.DISPUTED,
       ],
-      [MatchStatus.LIVE]: [MatchStatus.FINISHED, MatchStatus.POSTPONED],
-      [MatchStatus.FINISHED]: [], // Cannot transition from finished
-      [MatchStatus.POSTPONED]: [MatchStatus.UPCOMING, MatchStatus.CANCELLED],
-      [MatchStatus.CANCELLED]: [], // Cannot transition from cancelled
+      [MatchStatus.LIVE]: [
+        MatchStatus.FINISHED,
+        MatchStatus.POSTPONED,
+        MatchStatus.DISPUTED,
+      ],
+      [MatchStatus.FINISHED]: [MatchStatus.DISPUTED], // Allow disputing finished matches
+      [MatchStatus.POSTPONED]: [
+        MatchStatus.UPCOMING,
+        MatchStatus.CANCELLED,
+        MatchStatus.DISPUTED,
+      ],
+      [MatchStatus.CANCELLED]: [MatchStatus.DISPUTED], // Allow disputing cancellations
+      [MatchStatus.DISPUTED]: [
+        MatchStatus.FINISHED,
+        MatchStatus.CANCELLED,
+        MatchStatus.UPCOMING,
+      ], // Allow resolving disputes
     };
 
     if (!validTransitions[currentStatus].includes(newStatus)) {
@@ -379,6 +402,13 @@ export class MatchesService {
       this.eventBus.publish(
         new MatchFinishedEvent(match.id, match.outcome, new Date()),
       );
+    }
+
+    if (
+      previousStatus !== MatchStatus.CANCELLED &&
+      match.status === MatchStatus.CANCELLED
+    ) {
+      this.eventBus.publish(new MatchCancelledEvent(match.id, new Date()));
     }
   }
 
