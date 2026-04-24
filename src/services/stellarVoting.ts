@@ -1,3 +1,10 @@
+/**
+ * @deprecated This mock voting service has been replaced by real Soroban contract calls
+ * in `src/lib/contractClient.ts` (voteOnCampaign, hasVoted, getApproveVotes, getRejectVotes).
+ * This file is kept only to avoid breaking any remaining imports during the transition.
+ * Remove once all call sites have been migrated.
+ */
+
 // Mock Stellar voting service - in production, this would integrate with actual Stellar smart contracts
 // For demonstration purposes, this simulates blockchain voting functionality
 

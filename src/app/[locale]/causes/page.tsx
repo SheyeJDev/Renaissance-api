@@ -5,12 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Campaign, Vote, CATEGORY_LABELS, CampaignStatus } from '@/types';
 import { explorerTxUrl } from '@/utils/explorer';
 import { SORT_OPTIONS } from '@/lib/mockCauses';
-import { stellarVotingService } from '@/services/stellarVoting';
 import { useCampaigns } from '@/hooks/useCampaigns';
 import { useWallet } from '@/components/WalletContext';
 import { useToast } from '@/components/ToastProvider';
 import { parseContractError } from '@/utils/contractErrors';
-import { cancelCampaign, claimRefund } from '@/lib/contractClient';
+import { cancelCampaign, claimRefund, voteOnCampaign, hasVoted } from '@/lib/contractClient';
 import CauseCard from '@/components/CauseCard';
 import { CauseCardSkeleton } from '@/components/Skeleton';
 
@@ -66,21 +65,27 @@ function CausesContent() {
   }, [debouncedSearch, category, status, sort, router]);
 
   // Load user votes whenever wallet or campaigns change
-  const loadUserVotes = useCallback(() => {
+  const loadUserVotes = useCallback(async () => {
     if (!userWalletAddress) return;
     const votes: Record<string, Vote> = {};
-    for (const campaign of campaigns) {
-      const v = stellarVotingService.getUserVote(String(campaign.id), userWalletAddress);
-      if (v) {
-        votes[campaign.id] = {
-          causeId: String(campaign.id),
-          voter: userWalletAddress,
-          voteType: v.voteType,
-          timestamp: v.timestamp,
-          transactionHash: 'mock-hash',
-        };
-      }
-    }
+    await Promise.all(
+      campaigns.map(async (campaign) => {
+        try {
+          const voted = await hasVoted(campaign.id, userWalletAddress);
+          if (voted) {
+            votes[campaign.id] = {
+              causeId: String(campaign.id),
+              voter: userWalletAddress,
+              voteType: 'upvote',
+              timestamp: new Date(),
+              transactionHash: '',
+            };
+          }
+        } catch {
+          // ignore per-campaign errors
+        }
+      })
+    );
     setUserVotes(votes);
   }, [userWalletAddress, campaigns]);
 
@@ -98,16 +103,15 @@ function CausesContent() {
       showWarning('Please connect your wallet first.');
       return;
     }
-    const id = String(campaignId);
-    if (stellarVotingService.hasUserVoted(id, userWalletAddress)) {
+    if (userVotes[campaignId]) {
       showWarning('You have already voted on this cause.');
       return;
     }
     setIsVotingFor(campaignId);
     try {
-      const transactionHash = await stellarVotingService.castVote(id, voteType, userWalletAddress);
+      const transactionHash = await voteOnCampaign(campaignId, userWalletAddress, voteType === 'upvote');
       const newVote: Vote = {
-        causeId: id,
+        causeId: String(campaignId),
         voter: userWalletAddress,
         voteType,
         timestamp: new Date(),

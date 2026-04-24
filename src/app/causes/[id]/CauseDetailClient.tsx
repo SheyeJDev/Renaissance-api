@@ -4,9 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Campaign, Vote, CATEGORY_LABELS, stroopsToXlm } from '../../../types';
 import { useCampaign } from '../../../hooks/useCampaign';
-import { stellarVotingService } from '../../../services/stellarVoting';
 import { useToast } from '../../../components/ToastProvider';
 import { parseContractError } from '../../../utils/contractErrors';
+import {
+  voteOnCampaign,
+  getApproveVotes,
+  getRejectVotes,
+  hasVoted,
+  getMinVotesQuorum,
+  getApprovalThresholdBps,
+  verifyCampaignWithVotes,
+  getContribution,
+  claimRefund,
+} from '../../../lib/contractClient';
 import VotingComponent from '../../../components/VotingComponent';
 import CampaignStatusBadge from '../../../components/CampaignStatusBadge';
 import DeadlineCountdown from '../../../components/DeadlineCountdown';
@@ -37,43 +47,96 @@ export default function CauseDetailClient({ id }: { id: string }) {
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const { showError, showSuccess, showWarning } = useToast();
 
+  // Quorum / threshold state
+  const [minVotesQuorum, setMinVotesQuorum] = useState<number | undefined>(undefined);
+  const [approvalThresholdBps, setApprovalThresholdBps] = useState<number | undefined>(undefined);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Refund state
+  const [refundableAmount, setRefundableAmount] = useState<bigint>(BigInt(0));
+  const [isClaimingRefund, setIsClaimingRefund] = useState(false);
+  const [refundTxHash, setRefundTxHash] = useState<string | null>(null);
+  const [alreadyRefunded, setAlreadyRefunded] = useState(false);
+
   useEffect(() => {
     if (fetchedCampaign) setCampaign(fetchedCampaign);
   }, [fetchedCampaign]);
 
+  // Load vote counts + quorum config whenever campaign changes
+  useEffect(() => {
+    if (!campaign) return;
+    const load = async () => {
+      try {
+        const [approves, rejects, quorum, threshold] = await Promise.all([
+          getApproveVotes(campaign.id),
+          getRejectVotes(campaign.id),
+          getMinVotesQuorum(),
+          getApprovalThresholdBps(),
+        ]);
+        setVoteCounts({ upvotes: approves, downvotes: rejects, totalVotes: approves + rejects });
+        setMinVotesQuorum(quorum);
+        setApprovalThresholdBps(threshold);
+      } catch {
+        // silently ignore — UI can still function without live vote counts
+      }
+    };
+    load();
+  }, [campaign]);
+
+  // Check whether the connected wallet has already voted
   useEffect(() => {
     if (!userWalletAddress || !campaign) return;
-    const existing = stellarVotingService.getUserVote(String(campaign.id), userWalletAddress);
-    if (existing) {
-      setUserVote({
-        causeId: String(campaign.id),
-        voter: userWalletAddress,
-        voteType: existing.voteType,
-        timestamp: existing.timestamp,
-        transactionHash: 'mock-hash',
-      });
-    }
+    const check = async () => {
+      try {
+        const voted = await hasVoted(campaign.id, userWalletAddress);
+        if (voted) {
+          setUserVote({
+            causeId: String(campaign.id),
+            voter: userWalletAddress,
+            voteType: 'upvote', // exact type unknown from contract; UI shows "already voted"
+            timestamp: new Date(),
+            transactionHash: '',
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+    check();
   }, [userWalletAddress, campaign]);
+
+  // Load refundable contribution
+  useEffect(() => {
+    if (!userWalletAddress || !campaign) return;
+    const loadContribution = async () => {
+      try {
+        const amount = await getContribution(campaign.id, userWalletAddress);
+        setRefundableAmount(amount);
+        if (amount === BigInt(0) && refundTxHash) {
+          // contribution zeroed after successful refund
+          setAlreadyRefunded(true);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    loadContribution();
+  }, [userWalletAddress, campaign, refundTxHash]);
 
   const handleVote = async (campaignId: number, voteType: 'upvote' | 'downvote') => {
     if (!userWalletAddress) {
       showWarning('Please connect your wallet first.');
       return;
     }
-    const id = String(campaignId);
-    if (stellarVotingService.hasUserVoted(id, userWalletAddress)) {
-      showWarning('You have already voted on this cause.');
-      return;
-    }
     setIsVoting(true);
     try {
-      const transactionHash = await stellarVotingService.castVote(id, voteType, userWalletAddress);
+      const txHash = await voteOnCampaign(campaignId, userWalletAddress, voteType === 'upvote');
       const newVote: Vote = {
-        causeId: id,
+        causeId: String(campaignId),
         voter: userWalletAddress,
         voteType,
         timestamp: new Date(),
-        transactionHash,
+        transactionHash: txHash,
       };
       setUserVote(newVote);
       setVoteCounts((prev) => ({
@@ -82,13 +145,45 @@ export default function CauseDetailClient({ id }: { id: string }) {
         totalVotes: prev.totalVotes + 1,
       }));
       showSuccess('Your vote has been cast successfully.');
-
-      // Trigger immediate refetch after successful transaction
       refetch();
     } catch (error) {
       showError(parseContractError(error));
     } finally {
       setIsVoting(false);
+    }
+  };
+
+  const handleVerifyWithVotes = async () => {
+    setIsVerifying(true);
+    try {
+      await verifyCampaignWithVotes(Number(id));
+      showSuccess('Campaign verified successfully via community vote!');
+      refetch();
+    } catch (error) {
+      showError(parseContractError(error));
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleClaimRefund = async () => {
+    if (!userWalletAddress || !campaign) return;
+    setIsClaimingRefund(true);
+    try {
+      const txHash = await claimRefund(campaign.id, userWalletAddress);
+      setRefundTxHash(txHash);
+      setRefundableAmount(BigInt(0));
+      showSuccess('Refund claimed successfully!');
+    } catch (error) {
+      const msg = parseContractError(error);
+      if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('no funds')) {
+        setAlreadyRefunded(true);
+        showWarning('Refund already claimed or no funds to refund.');
+      } else {
+        showError(msg);
+      }
+    } finally {
+      setIsClaimingRefund(false);
     }
   };
 
@@ -149,6 +244,13 @@ export default function CauseDetailClient({ id }: { id: string }) {
     voteCounts.totalVotes > 0 ? Math.round((voteCounts.upvotes / voteCounts.totalVotes) * 100) : 0;
 
   const categoryLabel = CATEGORY_LABELS[campaign.category] ?? 'Other';
+
+  const now = Math.floor(Date.now() / 1000);
+  const isRefundEligible =
+    campaign.is_cancelled ||
+    (now > campaign.deadline && campaign.amount_raised < campaign.funding_goal);
+
+  const refundableXlm = stroopsToXlm(refundableAmount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800">
@@ -228,6 +330,55 @@ export default function CauseDetailClient({ id }: { id: string }) {
                 />
               </div>
             )}
+
+            {/* Claim Refund section */}
+            {isRefundEligible && userWalletAddress && (
+              <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-amber-200 dark:border-amber-700 p-6">
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                  💸 Claim Refund
+                </h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                  {campaign.is_cancelled
+                    ? 'This campaign was cancelled. Contributors can reclaim their tokens.'
+                    : 'This campaign did not reach its funding goal by the deadline. Contributors can reclaim their tokens.'}
+                </p>
+
+                {alreadyRefunded || refundTxHash ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      ✓ Refund successfully claimed
+                    </p>
+                    {refundTxHash && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono break-all">
+                        Tx: {refundTxHash}
+                      </p>
+                    )}
+                  </div>
+                ) : refundableAmount > BigInt(0) ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                      Your refundable contribution:{' '}
+                      <span className="font-semibold">
+                        {refundableXlm.toLocaleString(undefined, { maximumFractionDigits: 4 })} XLM
+                      </span>
+                    </p>
+                    <button
+                      onClick={handleClaimRefund}
+                      disabled={isClaimingRefund}
+                      className="w-full min-h-[44px] py-2 px-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm"
+                    >
+                      {isClaimingRefund ? 'Processing…' : 'Claim Refund'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    {refundableAmount === BigInt(0) && alreadyRefunded
+                      ? 'Already refunded.'
+                      : 'No contribution found for your wallet, or refund already claimed.'}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar – right col */}
@@ -242,6 +393,10 @@ export default function CauseDetailClient({ id }: { id: string }) {
               upvotes={voteCounts.upvotes}
               downvotes={voteCounts.downvotes}
               totalVotes={voteCounts.totalVotes}
+              minVotesQuorum={minVotesQuorum}
+              approvalThresholdBps={approvalThresholdBps}
+              onVerifyWithVotes={handleVerifyWithVotes}
+              isVerifying={isVerifying}
             />
 
             {/* Donate button */}
@@ -333,3 +488,4 @@ export default function CauseDetailClient({ id }: { id: string }) {
     </div>
   );
 }
+
