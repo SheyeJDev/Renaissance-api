@@ -41,6 +41,9 @@ export class BalanceTransaction {
   @Column({ type: 'decimal', precision: 18, scale: 8, default: 0 })
   newBalance: number;
 
+  @Column({ type: 'json', nullable: true })
+  metadata: any;
+
   @CreateDateColumn()
   createdAt: Date;
 }
