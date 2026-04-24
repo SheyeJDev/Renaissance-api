@@ -17,6 +17,9 @@ export class Stake {
   @Column('decimal', { precision: 18, scale: 6, default: 0 })
   totalClaimed!: number;
 
+  @Column('decimal', { precision: 18, scale: 6, default: 0 })
+  compoundedAmount!: number;
+
   @Column({ default: true })
   active!: boolean;
 

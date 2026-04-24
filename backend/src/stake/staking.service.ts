@@ -112,4 +112,33 @@ export class StakingService {
   async getPlayerStakes(playerId: string): Promise<Stake[]> {
     return this.stakeRepo.find({ where: { playerId }, order: { stakedAt: 'DESC' } });
   }
+
+  /**
+   * Compound rewards: add pending rewards to the stake principal.
+   * Tracks compounded amount separately on the stake record.
+   */
+  async compoundRewards(playerId: string, stakeId: string): Promise<Stake> {
+    const s = await this.stakeRepo.findOne({ where: { id: stakeId, playerId, active: true } });
+    if (!s) throw new NotFoundException('Active stake not found');
+    if (s.pendingRewards <= 0) throw new BadRequestException('No rewards to compound');
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const compounded = s.pendingRewards;
+      s.amount = parseFloat((s.amount + compounded).toFixed(6));
+      s.compoundedAmount = parseFloat(((s.compoundedAmount ?? 0) + compounded).toFixed(6));
+      s.pendingRewards = 0;
+      const saved = await queryRunner.manager.save(s);
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

@@ -23,4 +23,5 @@ pub enum ContractError {
     AlreadyInitialized = 17,
     BetAlreadyPlaced = 18,
     DuplicateOperation = 19,
+    NoRewardsToClaim = 20,
 }
