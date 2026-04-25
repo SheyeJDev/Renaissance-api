@@ -384,6 +384,71 @@ mod unit_tests {
     }
 
     #[test]
+    fn test_nft_player_cards_mint_transfer_burn_token_uri_royalty_sale() {
+        let (env, _, _, _, _, _, nft_client, _, _, admin, user1, user2, _, betting_token) = setup_complete_test_env();
+
+        let player_id = BytesN::from_array(&env, &[1; 32]);
+        let metadata_uri = String::from_str(&env, "ipfs://player-metadata");
+        let royalty_recipients = {
+            let mut recipients = Vec::new(&env);
+            recipients.push_back(user1.clone());
+            recipients.push_back(user2.clone());
+            recipients
+        };
+        let royalty_shares = {
+            let mut shares = Vec::new(&env);
+            shares.push_back(1000u32); // 10%
+            shares.push_back(500u32); // 5%
+            shares
+        };
+
+        let mint_operation_hash = BytesN::from_array(&env, &[2; 32]);
+        nft_client
+            .mint(&mint_operation_hash, &admin, &player_id, metadata_uri.clone(), &None)
+            .unwrap();
+
+        let owner_after_mint = nft_client.get_owner(&player_id).unwrap();
+        assert_eq!(owner_after_mint, admin);
+
+        let retrieved_uri = nft_client.token_uri(&player_id).unwrap();
+        assert_eq!(retrieved_uri, metadata_uri);
+
+        nft_client
+            .set_royalty(&admin, &player_id, &royalty_recipients, &royalty_shares)
+            .unwrap();
+
+        let initial_buyer_balance = betting_token.balance(&user1);
+        let initial_recipient_balance = betting_token.balance(&user2);
+        let sale_price = 1_000_000i128;
+        let sale_operation_hash = BytesN::from_array(&env, &[3; 32]);
+
+        nft_client
+            .marketplace_sale(
+                &sale_operation_hash,
+                &user1,
+                &betting_token.address(),
+                &player_id,
+                &sale_price,
+                &None,
+            )
+            .unwrap();
+
+        let owner_after_sale = nft_client.get_owner(&player_id).unwrap();
+        assert_eq!(owner_after_sale, user1);
+
+        let expected_buyer_balance = initial_buyer_balance - sale_price;
+        assert_eq!(betting_token.balance(&user1), expected_buyer_balance);
+
+        let expected_recipient_amount = sale_price * 1000 / 10_000;
+        assert_eq!(betting_token.balance(&user2), initial_recipient_balance + expected_recipient_amount);
+
+        nft_client.burn(&user1, &player_id).unwrap();
+
+        assert!(nft_client.get_owner(&player_id).is_none());
+        assert!(nft_client.token_uri(&player_id).is_none());
+    }
+
+    #[test]
     fn test_spin_rewards_operations() {
         let (env, _, _, _, _, _, _, spin_rewards_client, _, admin, user1, _, staking_token, _) = setup_complete_test_env();
 

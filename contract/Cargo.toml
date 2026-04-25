@@ -4,6 +4,7 @@ members = [
   "contracts/balance_ledger",
   "contracts/betting",
   "contracts/common",
+  "contracts/nft_player_cards",
   "contracts/player_card",
   "contracts/settlement",
   "contracts/staking",
